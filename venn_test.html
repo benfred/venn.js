@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>venn.js tests</title>
+
+    <link rel="stylesheet" href="http://code.jquery.com/qunit/qunit-1.11.0.css">
+    <script src="http://code.jquery.com/qunit/qunit-1.11.0.js"></script>
+    <script src="./venn.js"></script>
+
+    <script>
+        function nearlyEqual(left, right, tolerance, message) {
+            message = message || "nearlyEqual";
+            tolerance = tolerance || 1e-5;
+            ok(Math.abs(left - right) < tolerance,
+               message + ": " + left + " ~== " + right);
+        }
+
+        test("fmin", function() {
+            // minimize simple 1 diminesial quadratic
+            var loss = function(values) { return (values[0] - 10) * (values[0] - 10); }
+            var solution = venn.fmin(loss, [0], {minErrorDelta:1e-10}).solution;
+            nearlyEqual(solution[0], 10, 1e-10);
+        });
+
+        test("circleIntegral", function() {
+            nearlyEqual(venn.circleIntegral(10, 0), 0, venn.SMALL,
+                "empty circle test");
+            nearlyEqual(venn.circleIntegral(10, 10),  Math.PI * 10 * 10 / 2, venn.SMALL,
+                "half circle test");
+        });
+
+        test("circleArea", function() {
+            nearlyEqual(venn.circleArea(10,0), 0, venn.SMALL, "empty circle test");
+            nearlyEqual(venn.circleArea(10, 10), Math.PI*10*10/2, venn.SMALL,
+                "half circle test");
+            nearlyEqual(venn.circleArea(10, 20), Math.PI*10*10, venn.SMALL,
+                "full circle test");
+        });
+
+        test("circleOverlap", function() {
+            nearlyEqual(venn.circleOverlap(10, 10, 200), 0, venn.SMALL,
+                "nonoverlapping circles test");
+
+            nearlyEqual(venn.circleOverlap(10, 10, 0), Math.PI*10*10, venn.SMALL,
+                "full overlapping circles test");
+
+            nearlyEqual(venn.circleOverlap(10, 5, 5), Math.PI * 5 * 5, venn.SMALL,
+                "another fully overlapping circles test");
+        });
+
+        test("distanceFromIntersectArea", function() {
+            function testDistanceFromIntersectArea(r1, r2, overlap) {
+                var distance = venn.distanceFromIntersectArea(r1, r2,
+                                                              overlap);
+                nearlyEqual(venn.circleOverlap(r1, r2, distance),
+                             overlap,
+                             1e-2);
+            }
+
+            testDistanceFromIntersectArea(1.9544100476116797,
+                                          2.256758334191025,
+                                          11);
+
+            testDistanceFromIntersectArea(111.06512962798197,
+                                          113.32348546565727,
+                                          1218);
+
+            testDistanceFromIntersectArea(44.456564007075,
+                                          149.4335753619362,
+                                          2799);
+        });
+
+
+        test("circleCircleIntersection", function() {
+            var testIntersection = function(p1, p2, msg) {
+                var points = venn.circleCircleIntersection(p1, p2);
+                // make sure that points are appropiately spaced
+                for (var i = 0; i < points.length; i++) {
+                    var point = points[i];
+                    nearlyEqual(venn.distance(point, p1),
+                                p1.radius, venn.SMALL,
+                                msg + ": test distance to p1 for point " + i);
+                    nearlyEqual(venn.distance(point, p2),
+                                p2.radius, venn.SMALL,
+                                msg + ": test distance to p2 for point " + i );
+                }
+
+                return points;
+            }
+
+            // fully contained
+            equal(venn.circleCircleIntersection({x:0, y:3, radius:10},
+                                                {x:3, y:0, radius:20}).length,
+                  0, "fully contained test");
+
+            // fully disjoint
+            equal(venn.circleCircleIntersection({x:0, y:0, radius:10},
+                                                {x:21, y:0, radius:10}).length,
+                  0, "fully disjoint test");
+
+            // midway between 2 points on y axis
+            var points = testIntersection({x:0, y:0, radius:10},
+                                          {x:10, y:0, radius:10},
+                                          "test midway intersection");
+            equal(points.length, 2);
+            nearlyEqual(points[0].x, 5, venn.SMALL);
+            nearlyEqual(points[1].x, 5);
+            nearlyEqual(points[0].y, -1 * points[1].y);
+
+            // failing case from input
+            var points = testIntersection({radius: 10, x: 15, y: 5},
+                                          {radius: 10, x: 20, y: 0},
+                                          "test intersection2");
+            equal(points.length, 2);
+        });
+    </script>
+</head>
+<body>
+<div id="qunit"></div>
+</body>
+</html>
