@@ -8,4 +8,4 @@ post](http://www.benfrederickson.com/2013/05/09/venn-diagrams-with-d3.js.html)
 I wrote about this. That blog post also contains details on the approach taken
 to compute the best layout for each venn diagram.
 
-Released under the MIT Licencse.
+Released under the MIT License.
