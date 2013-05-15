@@ -80,7 +80,7 @@
     have the overlap area 'overlap' */
     venn.distanceFromIntersectArea = function(r1, r2, overlap) {
         if (overlap <= 0) {
-            return (r1 + r2) * 1.1;
+            return (r1 + r2);
         }
 
         function loss(distance) {
@@ -100,6 +100,34 @@
             console.log("failed: " + r1 + " " + r2 + " " + overlap + " " + ret.f);
         }
         return ret.solution[0];
+    };
+
+    /// gets a matrix of euclidean distances between all sets in venn diagram
+    venn.getDistanceMatrix = function(sets, overlaps) {
+        // initialize an empty distance matrix between all the points
+        var distances = [];
+        for (var i = 0; i < sets.length; ++i) {
+            distances.push([]);
+            for (var j = 0; j < sets.length; ++j) {
+                distances[i].push(0);
+            }
+        }
+
+        // compute distances between all the points
+        for (var i = 0; i < overlaps.length; ++i) {
+            var current = overlaps[i];
+            if (current.sets.length !== 2) {
+                continue;
+            }
+
+            var left = current.sets[0],
+                right = current.sets[1],
+                r1 = Math.sqrt(sets[left].size / Math.PI),
+                r2 = Math.sqrt(sets[right].size / Math.PI),
+                distance = venn.distanceFromIntersectArea(r1, r2, current.size);
+            distances[left][right] = distances[right][left] = distance;
+        }
+        return distances;
     };
 
     /** euclidean distance between two points */
@@ -192,6 +220,9 @@
         // add most overlapped set at (0,0)
         positionSet({x: 0, y: 0}, mostOverlapped[0].set);
 
+        // get distances between all points
+        var distances = venn.getDistanceMatrix(sets, overlaps);
+
         for (i = 1; i < mostOverlapped.length; ++i) {
             var setIndex = mostOverlapped[i].set,
                 set = sets[setIndex],
@@ -206,8 +237,7 @@
             for (var j = 0; j < overlap.length; ++j) {
                 // get appropiate distance from most overlapped already added set
                 var p1 = sets[overlap[j].set],
-                    d1 = venn.distanceFromIntersectArea(set.radius, p1.radius,
-                                                        overlap[j].size);
+                    d1 = distances[setIndex][overlap[j].set];
 
                 // sample postions at 90 degrees for maximum aesheticness
                 points.push({x : p1.x + d1, y : p1.y});
@@ -219,8 +249,7 @@
                 // set should be positioned analytically and try those too
                 for (var k = j + 1; k < overlap.length; ++k) {
                     var p2 = sets[overlap[k].set],
-                        d2 = venn.distanceFromIntersectArea(set.radius, p2.radius,
-                                                            overlap[k].size);
+                        d2 = distances[setIndex][overlap[k].set];
 
                     var extraPoints = venn.circleCircleIntersection(
                         { x: p1.x, y: p1.y, radius: d1},
@@ -248,6 +277,23 @@
             positionSet(bestPoint, setIndex);
         }
 
+        return sets;
+    };
+
+    /// Uses multidimensional scaling to approximate a first layout here
+    venn.classicMDSLayout = function(sets, overlaps) {
+        // get the distance matix
+        var distances = venn.getDistanceMatrix(sets, overlaps);
+
+        // get positions for each set
+        var positions = mds.classic(distances);
+
+        // translate back to (x,y,radius) coordinates
+        for (var i = 0; i < sets.length; ++i) {
+            sets[i].x = positions[i][0];
+            sets[i].y = positions[i][1];
+            sets[i].radius = Math.sqrt(sets[i].size / Math.PI);
+        }
         return sets;
     };
 
