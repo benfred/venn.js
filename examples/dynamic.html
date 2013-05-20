@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Dynamic venn.js example</title>
+</head>
+
+<body>
+<div style="float:left;padding:20px">
+    <div class="input-prepend:w
+    ">
+      <span class="add-on">|A|</span>
+      <input class="input-mini venn_set" id="a" type="number" value="8">
+    </div>
+    <div class="input-prepend">
+      <span class="add-on">|B|</span>
+      <input class="input-mini venn_set" id="b" type="number" value="16">
+    </div>
+    <div class="input-prepend">
+      <span class="add-on">|C|</span>
+      <input class="input-mini venn_set" id="c" type="number" value="12">
+    </div>
+    <div class="input-prepend">
+      <span class="add-on">|A&#8745B|</span>
+      <input class="input-mini venn_area" id="0,1" type="number" value="3">
+    </div>
+    <div class="input-prepend">
+      <span class="add-on">|A&#8745C|</span>
+      <input class="input-mini venn_area" id="0,2" type="number" value="2">
+    </div>
+    <div class="input-prepend">
+      <span class="add-on">|B&#8745C|</span>
+      <input class="input-mini venn_area" id="1,2" type="number" value="1">
+    </div>
+</div>
+<div class="dynamic"></div>
+<div style="clear: both;"></div>
+</body>
+<script src="http://d3js.org/d3.v2.min.js"></script>
+<script src="http://raw.github.com/benfred/venn.js/master/venn.js"></script>
+<script>
+function getSetIntersections() {
+    areas = d3.selectAll(".venn_area")[0].map(
+        function (element) { 
+            return { sets: element.id.split(",").map(function(value) { return parseInt(value);}), 
+                    size: parseFloat(element.value)};} );
+    return areas;
+}
+
+function getSets() {
+    var sets=[{"label": "A"}, {"label":"B"}, {"label": "C"}], areas = [];
+    d3.selectAll(".venn_set")[0].map(
+        function(element, i) { sets[i].size = parseFloat(element.value); });
+    return sets;
+}
+
+var w = Math.min(450, document.documentElement.clientWidth-30), h = 2*w/3;
+
+// draw the initial set
+var sets = venn.venn(getSets(), getSetIntersections());
+venn.drawD3Diagram(d3.select(".dynamic"), sets, w, h);
+
+// redraw the sets on any change in input
+d3.selectAll("input").on("change", function() {
+    var sets = venn.venn(getSets(), getSetIntersections());
+    venn.updateD3Diagram(d3.select(".dynamic"), sets);
+});
+
+</script>
+</html>
