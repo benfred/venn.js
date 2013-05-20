@@ -2,15 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Simple venn.js example</title>
+    <title>mds venn.js example</title>
 </head>
 
 <body>
-    <div class="simple_example"></div>
+    <div class="mds"></div>
 </body>
 
 <script src="http://d3js.org/d3.v2.min.js"></script>
 <script src="http://raw.github.com/benfred/venn.js/master/venn.js"></script>
+<script src="http://raw.github.com/benfred/mds.js/master/mds.js"></script>
+<script src="http://www.numericjs.com/lib/numeric-1.2.6.min.js"></script>
 <script>
 
 var sets = [{label : 'A', size : 9}, {label : 'B', size: 15},
@@ -36,8 +38,8 @@ var sets = [{label : 'A', size : 9}, {label : 'B', size: 15},
 // get positions for each set
 sets = venn.venn(sets, overlaps, {layoutFunction: venn.classicMDSLayout})
 
-// draw the diagram in the 'simple_example' div
-venn.drawD3Diagram(d3.select(".simple_example"), sets, 300, 300);
+// draw the diagram in the 'mds' div
+venn.drawD3Diagram(d3.select(".mds"), sets, 300, 300);
 
 
 
