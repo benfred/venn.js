@@ -26,7 +26,7 @@ sets = venn.venn(sets, overlaps);
 // draw the diagram in the 'simple_example' div
 venn.drawD3Diagram(d3.select(".simple_example"), sets, 300, 300);
 ```
-You can [view this example here](http://raw.github.com/benfred/venn.js/master/examples/simple.js)
+You can [view this example here](http://benfred.github.io/venn.js/examples/simple.html)
 
 ##### Dynamic layout
 
@@ -45,7 +45,7 @@ d3.selectAll("input").on("change", function() {
 });
 ```
 
-You can [view this example here](http://raw.github.com/benfred/venn.js/master/examples/dynamic.js)
+You can [view this example here](http://benfred.github.io/venn.js/examples/dynamic.html)
 
 Other examples of this libray in action can be found on the [blog
 post](http://www.benfrederickson.com/2013/05/09/venn-diagrams-with-d3.js.html)
