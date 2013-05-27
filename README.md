@@ -30,7 +30,7 @@ sets = venn.venn(sets, overlaps);
 // draw the diagram in the 'simple_example' div
 venn.drawD3Diagram(d3.select(".simple_example"), sets, 300, 300);
 ```
-You can [view this example here](http://benfred.github.io/venn.js/examples/simple.html)
+[View this example ](http://benfred.github.io/venn.js/examples/simple.html)
 
 ##### Dynamic layout
 
@@ -48,7 +48,7 @@ d3.selectAll("input").on("change", function() {
 });
 ```
 
-You can [view this example here](http://benfred.github.io/venn.js/examples/dynamic.html)
+[View this example](http://benfred.github.io/venn.js/examples/dynamic.html)
 
 ##### MDS Layout
 
@@ -65,6 +65,6 @@ and [numeric.js](http://numericjs.com) libraries first, and then generate the ve
 ```javascript
 sets = venn.venn(sets, overlaps, {layoutFunction: venn.classicMDSLayout});
 ```
-You can [view this example here](http://benfred.github.io/venn.js/examples/mds.html)
+[View this example](http://benfred.github.io/venn.js/examples/mds.html)
 
 Released under the MIT License.
