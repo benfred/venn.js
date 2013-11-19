@@ -588,21 +588,6 @@
         return arcArea + polygonArea;
     };
 
-    /** returns a monte carlo estimate of the overlap of a bunch of circles
-     much simpler method than the one above, but slower and less accurate */
-    circleIntersection.monteCarloEstimate = function(circles, count) {
-        count = count || 10000;
-        var contained = 0;
-        var bound = circleIntersection.getBoundingRectangle(circles);
-        for (var i = 0; i < count; ++i) {
-            var p = circleIntersection.randomPoint(bound);
-            if (circleIntersection.containedInCircles(p, circles)) {
-                contained++;
-            }
-        }
-        return bound.width * bound.height * contained / count;
-    };
-
     /** returns whether a point is contained by all of a list of circles */
     circleIntersection.containedInCircles = function(point, circles) {
         for (var i = 0; i < circles.length; ++i) {
@@ -703,11 +688,6 @@
         center.x /= points.length;
         center.y /= points.length;
         return center;
-    };
-
-    circleIntersection.randomPoint = function(rect) {
-        return { x: rect.x + Math.random() * rect.width,
-                 y: rect.y + Math.random() * rect.height};
     };
 
     circleIntersection.getBoundingRectangle = function(circles) {
