@@ -7,34 +7,54 @@
 
 <body>
 <div style="float:left;padding:20px">
-    <div class="input-prepend:w
-    ">
-      <span class="add-on">|A|</span>
-      <input class="input-mini venn_set" id="a" type="number" value="8">
-    </div>
-    <div class="input-prepend">
-      <span class="add-on">|B|</span>
-      <input class="input-mini venn_set" id="b" type="number" value="16">
-    </div>
-    <div class="input-prepend">
-      <span class="add-on">|C|</span>
-      <input class="input-mini venn_set" id="c" type="number" value="12">
-    </div>
-    <div class="input-prepend">
-      <span class="add-on">|A&#8745B|</span>
-      <input class="input-mini venn_area" id="0,1" type="number" value="3">
-    </div>
-    <div class="input-prepend">
-      <span class="add-on">|A&#8745C|</span>
-      <input class="input-mini venn_area" id="0,2" type="number" value="2">
-    </div>
-    <div class="input-prepend">
-      <span class="add-on">|B&#8745C|</span>
-      <input class="input-mini venn_area" id="1,2" type="number" value="1">
-    </div>
+    <table>
+    <tr>
+      <td>|A|</td>
+      <td>
+        <input class="input-mini venn_set" id="a" type="number" value="16">
+      </td>
+    </tr>
+    <tr>
+      <td>|B|</td>
+      <td>
+        <input class="input-mini venn_set" id="b" type="number" value="16">
+      </td>
+    </tr>
+    <tr>
+      <td>|C|</td>
+      <td>
+        <input class="input-mini venn_set" id="c" type="number" value="12">
+      </td>
+    </tr>
+    <tr>
+      <td>|A&#8745B|</td>
+      <td>
+        <input class="input-mini venn_area" id="0,1" type="number" value="4">
+      </td>
+    </tr>
+    <tr>
+      <td>|A&#8745C|</td>
+      <td>
+        <input class="input-mini venn_area" id="0,2" type="number" value="4">
+      </td>
+    </tr>
+    <tr>
+      <td>|B&#8745C|</td>
+      <td>
+        <input class="input-mini venn_area" id="1,2" type="number" value="3">
+      </td>
+    </tr>
+    <tr>
+      <td>|A&#8745CB&#8745C|&nbsp</td>
+      <td>
+        <input class="input-mini venn_area" id="0,1,2" type="number" value="2">
+      </td>
+    </tr>
+    </table>
 </div>
 <div class="dynamic"></div>
 <div style="clear: both;"></div>
+
 </body>
 <script src="http://d3js.org/d3.v2.min.js"></script>
 <script src="../venn.js"></script>
