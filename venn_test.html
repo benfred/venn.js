@@ -24,28 +24,28 @@
         });
 
         test("circleIntegral", function() {
-            nearlyEqual(venn.circleIntegral(10, 0), 0, venn.SMALL,
+            nearlyEqual(circleIntersection.circleIntegral(10, 0), 0, venn.SMALL,
                 "empty circle test");
-            nearlyEqual(venn.circleIntegral(10, 10),  Math.PI * 10 * 10 / 2, venn.SMALL,
+            nearlyEqual(circleIntersection.circleIntegral(10, 10),  Math.PI * 10 * 10 / 2, venn.SMALL,
                 "half circle test");
         });
 
         test("circleArea", function() {
-            nearlyEqual(venn.circleArea(10,0), 0, venn.SMALL, "empty circle test");
-            nearlyEqual(venn.circleArea(10, 10), Math.PI*10*10/2, venn.SMALL,
+            nearlyEqual(circleIntersection.circleArea(10,0), 0, venn.SMALL, "empty circle test");
+            nearlyEqual(circleIntersection.circleArea(10, 10), Math.PI*10*10/2, venn.SMALL,
                 "half circle test");
-            nearlyEqual(venn.circleArea(10, 20), Math.PI*10*10, venn.SMALL,
+            nearlyEqual(circleIntersection.circleArea(10, 20), Math.PI*10*10, venn.SMALL,
                 "full circle test");
         });
 
         test("circleOverlap", function() {
-            nearlyEqual(venn.circleOverlap(10, 10, 200), 0, venn.SMALL,
+            nearlyEqual(circleIntersection.circleOverlap(10, 10, 200), 0, venn.SMALL,
                 "nonoverlapping circles test");
 
-            nearlyEqual(venn.circleOverlap(10, 10, 0), Math.PI*10*10, venn.SMALL,
+            nearlyEqual(circleIntersection.circleOverlap(10, 10, 0), Math.PI*10*10, venn.SMALL,
                 "full overlapping circles test");
 
-            nearlyEqual(venn.circleOverlap(10, 5, 5), Math.PI * 5 * 5, venn.SMALL,
+            nearlyEqual(circleIntersection.circleOverlap(10, 5, 5), Math.PI * 5 * 5, venn.SMALL,
                 "another fully overlapping circles test");
         });
 
@@ -53,7 +53,7 @@
             function testDistanceFromIntersectArea(r1, r2, overlap) {
                 var distance = venn.distanceFromIntersectArea(r1, r2,
                                                               overlap);
-                nearlyEqual(venn.circleOverlap(r1, r2, distance),
+                nearlyEqual(circleIntersection.circleOverlap(r1, r2, distance),
                              overlap,
                              1e-2);
             }
@@ -74,14 +74,14 @@
 
         test("circleCircleIntersection", function() {
             var testIntersection = function(p1, p2, msg) {
-                var points = venn.circleCircleIntersection(p1, p2);
+                var points = circleIntersection.circleCircleIntersection(p1, p2);
                 // make sure that points are appropiately spaced
                 for (var i = 0; i < points.length; i++) {
                     var point = points[i];
-                    nearlyEqual(venn.distance(point, p1),
+                    nearlyEqual(circleIntersection.distance(point, p1),
                                 p1.radius, venn.SMALL,
                                 msg + ": test distance to p1 for point " + i);
-                    nearlyEqual(venn.distance(point, p2),
+                    nearlyEqual(circleIntersection.distance(point, p2),
                                 p2.radius, venn.SMALL,
                                 msg + ": test distance to p2 for point " + i );
                 }
@@ -90,12 +90,12 @@
             }
 
             // fully contained
-            equal(venn.circleCircleIntersection({x:0, y:3, radius:10},
+            equal(circleIntersection.circleCircleIntersection({x:0, y:3, radius:10},
                                                 {x:3, y:0, radius:20}).length,
                   0, "fully contained test");
 
             // fully disjoint
-            equal(venn.circleCircleIntersection({x:0, y:0, radius:10},
+            equal(circleIntersection.circleCircleIntersection({x:0, y:0, radius:10},
                                                 {x:21, y:0, radius:10}).length,
                   0, "fully disjoint test");
 
@@ -114,6 +114,41 @@
                                           "test intersection2");
             equal(points.length, 2);
         });
+
+
+        test("disjointCircles", function() {
+            // each one of these circles overlaps all the others, but the total overlap is still 0
+            var circles =  [{"x":0.909, "y":0.905, "radius":0.548},
+                            {"x":0.765, "y":0.382, "radius":0.703},
+                            {"x":0.630, "y":0.019, "radius":0.449},
+                            {"x":0.210, "y":0.755, "radius":0.656},
+                            {"x":0.276, "y":0.723, "radius":1.145},
+                            {"x":0.141, "y":0.585, "radius":0.419}];
+
+            var area = circleIntersection.intersectionArea(circles);
+            ok(area == 0);
+
+            // no intersection points, but the smallest circle is completely overlapped by each of the others
+            circles = [{"x":0.426, "y":0.882,"radius":0.944},
+                       {"x":0.240, "y":0.685,"radius":0.992},
+                       {"x":0.010, "y":0.909,"radius":1.161},
+                       {"x":0.540, "y":0.475,"radius":0.410}];
+
+            ok(circles[3].radius * circles[3].radius * Math.PI == circleIntersection.intersectionArea(circles));
+        });
+
+
+        test("randomFailures", function() {
+            var circles = [{"x":0.501,"y":0.320,"radius":0.629},
+                           {"x":0.945,"y":0.022,"radius":1.015},
+                           {"x":0.021,"y":0.863,"radius":0.261},
+                           {"x":0.528,"y":0.090,"radius":0.676}],
+                area = circleIntersection.intersectionArea(circles);
+
+            ok(Math.abs(area - 0.0008914) < 0.0001, area);
+
+        });
+
     </script>
 </head>
 <body>
