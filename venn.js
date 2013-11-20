@@ -617,7 +617,7 @@
 
     circleIntersection.circleIntegral = function(r, x) {
         var y = Math.sqrt(r * r - x * x);
-        return x * y + r * r * Math.atan(x / (y + SMALL));
+        return x * y + r * r * Math.atan2(x, y);
     };
 
     /** Returns the area of a circle of radius r - up to width */
