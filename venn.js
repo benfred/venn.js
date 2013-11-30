@@ -427,12 +427,9 @@
 
         nodes.append("circle")
                .attr("r",  function(d) { return d.radius; })
-               .style("fill-opacity", 0.2)
-               .style("stroke-opacity", 0.8)
-               .style("stroke-width", 3)
+               .style("fill-opacity", 0.3)
                .attr("cx", function(d) { return d.x; })
                .attr("cy", function(d) { return d.y; })
-               .style("stroke", function(d, i) { return colours(i); })
                .style("fill", function(d, i) { return colours(i); });
 
         nodes.append("text")
@@ -617,7 +614,7 @@
 
     circleIntersection.circleIntegral = function(r, x) {
         var y = Math.sqrt(r * r - x * x);
-        return x * y + r * r * Math.atan(x / (y + SMALL));
+        return x * y + r * r * Math.atan2(x, y);
     };
 
     /** Returns the area of a circle of radius r - up to width */
@@ -688,16 +685,6 @@
         center.x /= points.length;
         center.y /= points.length;
         return center;
-    };
-
-    circleIntersection.getBoundingRectangle = function(circles) {
-        var bound = {
-            x : Math.max.apply(null, circles.map(function(p) { return p.x - p.radius; })),
-            y : Math.max.apply(null, circles.map(function(p) { return p.y - p.radius; }))};
-        bound.width = Math.min.apply(null, circles.map(function(p) { return p.x + p.radius; })) - bound.x;
-        bound.height = Math.min.apply(null, circles.map(function(p) { return p.y + p.radius; })) - bound.y;
-
-        return bound;
     };
 }(window.circleIntersection = window.circleIntersection || {}));
 
