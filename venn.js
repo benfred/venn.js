@@ -689,15 +689,5 @@
         center.y /= points.length;
         return center;
     };
-
-    circleIntersection.getBoundingRectangle = function(circles) {
-        var bound = {
-            x : Math.max.apply(null, circles.map(function(p) { return p.x - p.radius; })),
-            y : Math.max.apply(null, circles.map(function(p) { return p.y - p.radius; }))};
-        bound.width = Math.min.apply(null, circles.map(function(p) { return p.x + p.radius; })) - bound.x;
-        bound.height = Math.min.apply(null, circles.map(function(p) { return p.y + p.radius; })) - bound.y;
-
-        return bound;
-    };
 }(window.circleIntersection = window.circleIntersection || {}));
 
