@@ -427,12 +427,9 @@
 
         nodes.append("circle")
                .attr("r",  function(d) { return d.radius; })
-               .style("fill-opacity", 0.2)
-               .style("stroke-opacity", 0.8)
-               .style("stroke-width", 3)
+               .style("fill-opacity", 0.3)
                .attr("cx", function(d) { return d.x; })
                .attr("cy", function(d) { return d.y; })
-               .style("stroke", function(d, i) { return colours(i); })
                .style("fill", function(d, i) { return colours(i); });
 
         nodes.append("text")
