@@ -1,5 +1,8 @@
 (function(venn) {
     "use strict";
+    var circleStrokeColours, circleFillColours, circleStrokeWidth,
+        textFillColours, textStrokeColours,
+        nodeOpacity;
     /** given a list of set objects, and their corresponding overlaps.
     updates the (x, y, radius) attribute on each set such that their positions
     roughly correspond to the desired overlaps */
@@ -8,6 +11,15 @@
         parameters.maxIterations = parameters.maxIterations || 500;
         var lossFunction = parameters.lossFunction || venn.lossFunction;
         var initialLayout = parameters.layoutFunction || venn.greedyLayout;
+
+        var colours = d3.scale.category10();
+        circleFillColours = parameters.circleFillColours || colours;
+        circleStrokeColours = parameters.circleStrokeColours || circleFillColours;
+        circleStrokeWidth = parameters.circleStrokeWidth || function(i) { return 1; };
+        textFillColours = parameters.textFillColours || colours;
+        textStrokeColours = parameters.textStrokeColours || textFillColours;
+        nodeOpacity = parameters.opacity || 0.3;
+
 
         // initial layout is done greedily
         sets = initialLayout(sets, overlaps);
@@ -423,21 +435,21 @@
                          .enter()
                          .append("g");
 
-        var colours = d3.scale.category10();
-
         nodes.append("circle")
                .attr("r",  function(d) { return d.radius; })
-               .style("fill-opacity", 0.3)
+               .style("fill-opacity", nodeOpacity)
                .attr("cx", function(d) { return d.x; })
                .attr("cy", function(d) { return d.y; })
-               .style("fill", function(d, i) { return colours(i); });
+               .style("stroke", function(d, i) { return circleStrokeColours(i); })
+               .style("stroke-width", function(d, i) { return circleStrokeWidth(i); })
+               .style("fill", function(d, i) { return circleFillColours(i); });
 
         nodes.append("text")
                .attr("x", function(d) { return d.x; })
                .attr("y", function(d) { return d.y; })
                .attr("text-anchor", "middle")
-               .style("stroke", function(d, i) { return colours(i); })
-               .style("fill", function(d, i) { return colours(i); })
+               .style("stroke", function(d, i) { return textStrokeColours(i); })
+               .style("fill", function(d, i) { return textFillColours(i); })
                .text(function(d) { return d.label; });
     };
 
