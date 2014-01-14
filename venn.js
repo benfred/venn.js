@@ -1,8 +1,5 @@
 (function(venn) {
     "use strict";
-    var circleStrokeColours, circleFillColours, circleStrokeWidth,
-        textFillColours, textStrokeColours,
-        nodeOpacity;
     /** given a list of set objects, and their corresponding overlaps.
     updates the (x, y, radius) attribute on each set such that their positions
     roughly correspond to the desired overlaps */
@@ -11,15 +8,6 @@
         parameters.maxIterations = parameters.maxIterations || 500;
         var lossFunction = parameters.lossFunction || venn.lossFunction;
         var initialLayout = parameters.layoutFunction || venn.greedyLayout;
-
-        var colours = d3.scale.category10();
-        circleFillColours = parameters.circleFillColours || colours;
-        circleStrokeColours = parameters.circleStrokeColours || circleFillColours;
-        circleStrokeWidth = parameters.circleStrokeWidth || function(i) { return 1; };
-        textFillColours = parameters.textFillColours || colours;
-        textStrokeColours = parameters.textStrokeColours || textFillColours;
-        nodeOpacity = parameters.opacity || 0.3;
-
 
         // initial layout is done greedily
         sets = initialLayout(sets, overlaps);
@@ -438,8 +426,18 @@
                 solution : simplex[0]};
     };
 
-    venn.drawD3Diagram = function(element, dataset, width, height, padding) {
-        padding = padding || 6;
+    venn.drawD3Diagram = function(element, dataset, width, height, parameters) {
+        parameters = parameters || {};
+
+        var colours = d3.scale.category10(),
+            circleFillColours = parameters.circleFillColours || colours,
+            circleStrokeColours = parameters.circleStrokeColours || circleFillColours,
+            circleStrokeWidth = parameters.circleStrokeWidth || function(i) { return 1; },
+            textFillColours = parameters.textFillColours || colours,
+            textStrokeColours = parameters.textStrokeColours || textFillColours,
+            nodeOpacity = parameters.opacity || 0.3,
+            padding = parameters.padding || 6;
+
         dataset = venn.scaleSolution(dataset, width, height, padding);
         var svg = element.append("svg")
                 .attr("width", width)
