@@ -310,9 +310,7 @@
                 a = mid;
             } 
 
-            if (Math.abs(delta) < tolerance) || (fMid == 0))
-
-            if (fMid == 0 || Math.abs(delta) < tolerance) {
+            if ((Math.abs(delta) < tolerance) || (fMid == 0)) {
                 return mid;
             }
         }
