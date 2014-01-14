@@ -432,7 +432,7 @@
         var colours = d3.scale.category10(),
             circleFillColours = parameters.circleFillColours || colours,
             circleStrokeColours = parameters.circleStrokeColours || circleFillColours,
-            circleStrokeWidth = parameters.circleStrokeWidth || function(i) { return 1; },
+            circleStrokeWidth = parameters.circleStrokeWidth || function(i) { return 0; },
             textFillColours = parameters.textFillColours || colours,
             textStrokeColours = parameters.textStrokeColours || textFillColours,
             nodeOpacity = parameters.opacity || 0.3,
