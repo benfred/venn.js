@@ -49,27 +49,9 @@
     /** Returns the distance necessary for two circles of radius r1 + r2 to
     have the overlap area 'overlap' */
     venn.distanceFromIntersectArea = function(r1, r2, overlap) {
-        if (overlap <= 0) {
-            return (r1 + r2);
-        }
-
-        function loss(distance) {
-            var actual;
-            if (distance[0] > (r1 + r2)) {
-                actual = (r1 + r2) - distance[0];
-            } else {
-                actual = circleIntersection.circleOverlap(r1, r2, distance[0]);
-            }
-            var ret = (actual - overlap) * (actual - overlap);
-            return ret;
-        }
-
-        var ret =  venn.fmin(loss, [Math.abs(r1-r2)]);
-
-        if (ret.f > 1e-3) {
-            console.log("failed: " + r1 + " " + r2 + " " + overlap + " " + ret.f);
-        }
-        return ret.solution[0];
+        return venn.bisect(function(distance) {
+            return circleIntersection.circleOverlap(r1, r2, distance) - overlap;
+        }, 0, r1 + r2);
     };
 
     /// gets a matrix of euclidean distances between all sets in venn diagram
@@ -300,6 +282,41 @@
             ret[j] = a[0] * a[1][j] + b[0] * b[1][j];
         }
         return ret;
+    }
+   
+    /** finds the zeros of a function, given two starting points (which must
+     * have opposite signs */
+    venn.bisect = function(f, a, b, parameters) {
+        parameters = parameters || {};
+        var maxIterations = parameters.maxIterations || 100,
+            tolerance = parameters.tolerance || 1e-10,
+            fA = f(a),
+            fB = f(b),
+            delta = b - a;
+
+        if (fA * fB > 0) {
+            throw "initial bisect points must have opposite signs";
+        }
+
+        if (fA == 0) return a;
+        if (fB == 0) return b;
+
+        for (var i = 0; i < maxIterations; ++i) {
+            delta /= 2;
+            var mid = a + delta,
+                fMid = f(mid);
+
+            if (fMid * fA >= 0) {
+                a = mid;
+            } 
+
+            if (Math.abs(delta) < tolerance) || (fMid == 0))
+
+            if (fMid == 0 || Math.abs(delta) < tolerance) {
+                return mid;
+            }
+        }
+        return a + delta;
     }
 
     /** minimizes a function using the downhill simplex method */
