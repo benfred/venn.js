@@ -454,7 +454,7 @@
                          .enter()
                          .append("g");
 
-        nodes.append("circle")
+        var circles = nodes.append("circle")
                .attr("r",  function(d) { return d.radius; })
                .style("fill-opacity", nodeOpacity)
                .attr("cx", function(d) { return d.x; })
@@ -463,13 +463,18 @@
                .style("stroke-width", function(d, i) { return circleStrokeWidth(i); })
                .style("fill", function(d, i) { return circleFillColours(i); });
 
-        nodes.append("text")
+        var text = nodes.append("text")
                .attr("x", function(d) { return d.x; })
                .attr("y", function(d) { return d.y; })
                .attr("text-anchor", "middle")
                .style("stroke", function(d, i) { return textStrokeColours(i); })
                .style("fill", function(d, i) { return textFillColours(i); })
                .text(function(d) { return d.label; });
+
+        return {'svg' : svg,
+                'nodes' : nodes,
+                'circles' : circles,
+                'text' : text };
     };
 
     venn.updateD3Diagram = function(element, dataset) {
