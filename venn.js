@@ -49,6 +49,12 @@
     /** Returns the distance necessary for two circles of radius r1 + r2 to
     have the overlap area 'overlap' */
     venn.distanceFromIntersectArea = function(r1, r2, overlap) {
+        // handle complete overlapped circles
+        if (Math.min(r1, r2) * Math.min(r1,r2) * Math.PI < overlap) {
+            console.log("overlapped" + r1 + " " + r2 + " " + overlap);
+            return Math.abs(r1 - r2);
+        }
+
         return venn.bisect(function(distance) {
             return circleIntersection.circleOverlap(r1, r2, distance) - overlap;
         }, 0, r1 + r2);
