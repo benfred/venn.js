@@ -245,7 +245,8 @@
                 overlap = circleIntersection.intersectionArea(getCircles(area.sets));
             }
 
-            output += (overlap - area.size) * (overlap - area.size);
+            var weight = (area.weight == null) ? 1.0 : area.weight;
+            output += weight * (overlap - area.size) * (overlap - area.size);
         }
 
         return output;
