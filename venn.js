@@ -467,6 +467,7 @@
                .attr("x", function(d) { return d.x; })
                .attr("y", function(d) { return d.y; })
                .attr("text-anchor", "middle")
+               .attr("dy", "0.35em")
                .style("stroke", function(d, i) { return textStrokeColours(i); })
                .style("fill", function(d, i) { return textFillColours(i); })
                .text(function(d) { return d.label; });
