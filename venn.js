@@ -51,7 +51,7 @@
     venn.distanceFromIntersectArea = function(r1, r2, overlap) {
         // handle complete overlapped circles
         if (Math.min(r1, r2) * Math.min(r1,r2) * Math.PI < overlap) {
-            console.log("overlapped" + r1 + " " + r2 + " " + overlap);
+            //console.log("overlapped" + r1 + " " + r2 + " " + overlap);
             return Math.abs(r1 - r2);
         }
 
