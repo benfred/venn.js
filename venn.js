@@ -289,7 +289,22 @@
         }
         return ret;
     }
-   
+
+    function centerVennDiagram( diagram, width, height, padding ) {
+        var diagramBoundaries;
+        var transformX, transformY;
+
+        if ( diagram ) {
+            diagramBoundaries = diagram[ 0 ][ 0 ].getBBox();
+            if ( diagramBoundaries && width && height ) {
+                padding = padding || 0;
+                transformX = Math.floor( ( width - ( 2 * padding ) - diagramBoundaries.width ) / 2 );
+                transformY = Math.floor( ( height - ( 2 * padding ) - diagramBoundaries.height ) / 2 );
+                diagram.attr( "transform", "translate(" + transformX + ","  + transformY + ")" );
+            }
+        }
+    }
+
     /** finds the zeros of a function, given two starting points (which must
      * have opposite signs */
     venn.bisect = function(f, a, b, parameters) {
@@ -314,7 +329,7 @@
 
             if (fMid * fA >= 0) {
                 a = mid;
-            } 
+            }
 
             if ((Math.abs(delta) < tolerance) || (fMid == 0)) {
                 return mid;
@@ -449,7 +464,9 @@
                 .attr("width", width)
                 .attr("height", height);
 
-        var nodes = svg.selectAll("circle")
+        var diagram = svg.append( "g" );
+
+        var nodes = diagram.selectAll("circle")
                          .data(dataset)
                          .enter()
                          .append("g");
@@ -470,6 +487,8 @@
                .style("stroke", function(d, i) { return textStrokeColours(i); })
                .style("fill", function(d, i) { return textFillColours(i); })
                .text(function(d) { return d.label; });
+
+        centerVennDiagram( diagram, width, height, padding );
 
         return {'svg' : svg,
                 'nodes' : nodes,
