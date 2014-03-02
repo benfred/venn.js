@@ -166,7 +166,7 @@
                 var p1 = sets[overlap[j].set],
                     d1 = distances[setIndex][overlap[j].set];
 
-                // sample positions at 90 degrees for maximum anesthetics
+                // sample positions at 90 degrees for maximum aesthetics
                 points.push({x : p1.x + d1, y : p1.y});
                 points.push({x : p1.x - d1, y : p1.y});
                 points.push({y : p1.y + d1, x : p1.x});
