@@ -157,7 +157,7 @@
             overlap.sort(sortOrder);
 
             if (overlap.length === 0) {
-                throw "Need overlap information for set " + set;
+                throw "Need overlap information for set " + JSON.stringify( set );
             }
 
             var points = [];
@@ -301,7 +301,7 @@
             delta = b - a;
 
         if (fA * fB > 0) {
-            throw "initial bisect points must have opposite signs";
+            throw "Initial bisect points must have opposite signs";
         }
 
         if (fA == 0) return a;
