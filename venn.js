@@ -88,7 +88,7 @@
         return distances;
     };
 
-    /** Lays out a venn diagram greedily, going from most overlapped sets to
+    /** Lays out a Venn diagram greedily, going from most overlapped sets to
     least overlapped, attempting to position each new set such that the
     overlapping areas to already positioned sets are basically right */
     venn.greedyLayout = function(sets, overlaps) {
@@ -162,11 +162,11 @@
 
             var points = [];
             for (var j = 0; j < overlap.length; ++j) {
-                // get appropiate distance from most overlapped already added set
+                // get appropriate distance from most overlapped already added set
                 var p1 = sets[overlap[j].set],
                     d1 = distances[setIndex][overlap[j].set];
 
-                // sample postions at 90 degrees for maximum aesheticness
+                // sample positions at 90 degrees for maximum anesthetics
                 points.push({x : p1.x + d1, y : p1.y});
                 points.push({x : p1.x - d1, y : p1.y});
                 points.push({y : p1.y + d1, x : p1.x});
@@ -209,7 +209,7 @@
 
     /// Uses multidimensional scaling to approximate a first layout here
     venn.classicMDSLayout = function(sets, overlaps) {
-        // get the distance matix
+        // get the distance matrix
         var distances = venn.getDistanceMatrix(sets, overlaps);
 
         // get positions for each set
@@ -289,7 +289,7 @@
         }
         return ret;
     }
-   
+
     /** finds the zeros of a function, given two starting points (which must
      * have opposite signs */
     venn.bisect = function(f, a, b, parameters) {
@@ -314,7 +314,7 @@
 
             if (fMid * fA >= 0) {
                 a = mid;
-            } 
+            }
 
             if ((Math.abs(delta) < tolerance) || (fMid == 0)) {
                 return mid;
@@ -675,7 +675,7 @@
             return 0;
         }
 
-        // completly overlapped
+        // completely overlapped
         if (d <= Math.abs(r1 - r2)) {
             return Math.PI * Math.min(r1, r2) * Math.min(r1, r2);
         }
@@ -689,7 +689,7 @@
     /** Given two circles (containing a x/y/radius attributes),
     returns the intersecting points if possible.
     note: doesn't handle cases where there are infinitely many
-    intersection poiints (circles are equivalent):, or only one intersection point*/
+    intersection points (circles are equivalent):, or only one intersection point*/
     circleIntersection.circleCircleIntersection = function(p1, p2) {
         var d = circleIntersection.distance(p1, p2),
             r1 = p1.radius,
