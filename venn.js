@@ -157,7 +157,7 @@
             overlap.sort(sortOrder);
 
             if (overlap.length === 0) {
-                throw "Need overlap information for set " + set;
+                throw "Need overlap information for set " + JSON.stringify( set );
             }
 
             var points = [];
@@ -289,7 +289,7 @@
         }
         return ret;
     }
-   
+
     /** finds the zeros of a function, given two starting points (which must
      * have opposite signs */
     venn.bisect = function(f, a, b, parameters) {
@@ -301,7 +301,7 @@
             delta = b - a;
 
         if (fA * fB > 0) {
-            throw "initial bisect points must have opposite signs";
+            throw "Initial bisect points must have opposite signs";
         }
 
         if (fA == 0) return a;
@@ -314,7 +314,7 @@
 
             if (fMid * fA >= 0) {
                 a = mid;
-            } 
+            }
 
             if ((Math.abs(delta) < tolerance) || (fMid == 0)) {
                 return mid;
