@@ -51,7 +51,7 @@
     venn.distanceFromIntersectArea = function(r1, r2, overlap) {
         // handle complete overlapped circles
         if (Math.min(r1, r2) * Math.min(r1,r2) * Math.PI < overlap) {
-            console.log("overlapped" + r1 + " " + r2 + " " + overlap);
+            //console.log("overlapped" + r1 + " " + r2 + " " + overlap);
             return Math.abs(r1 - r2);
         }
 
@@ -290,6 +290,42 @@
         return ret;
     }
 
+    function centerVennDiagram( diagram, width, height, padding ) {
+        var diagramBoundaries;
+        var allowedWidth = width - ( 2 * ( padding || 0 ) );
+        var allowedHeight = height - ( 2 * ( padding || 0 ) );
+        var scale;
+        var transformX, transformY;
+        var transform = "";
+
+        if ( diagram ) {
+            diagramBoundaries = diagram[ 0 ][ 0 ].getBBox();
+            if ( diagramBoundaries && width && height ) {
+
+                //  See if we need to scale to fit the width/height
+                if ( diagramBoundaries.width > allowedWidth ) {
+                    scale = allowedWidth / diagramBoundaries.width;
+                }
+                if ( diagramBoundaries.height > allowedHeight ) {
+                    if ( !scale || ( allowedHeight / diagramBoundaries.height ) < scale ) {
+                        scale = allowedHeight / diagramBoundaries.height;
+                    }
+                }
+
+                if ( scale ) {
+                    transform = "scale(" + scale + ")";
+                }
+                else {
+                    scale = 1;
+                }
+
+                transformX = Math.floor( ( allowedWidth - ( diagramBoundaries.width * scale ) ) / 2 );
+                transformY = Math.floor( ( allowedHeight - ( diagramBoundaries.height * scale ) ) / 2 );
+                diagram.attr( "transform", "translate(" + transformX + ","  + transformY + ") " + transform );
+            }
+        }
+    }
+
     /** finds the zeros of a function, given two starting points (which must
      * have opposite signs */
     venn.bisect = function(f, a, b, parameters) {
@@ -449,7 +485,9 @@
                 .attr("width", width)
                 .attr("height", height);
 
-        var nodes = svg.selectAll("circle")
+        var diagram = svg.append( "g" );
+
+        var nodes = diagram.selectAll("circle")
                          .data(dataset)
                          .enter()
                          .append("g");
@@ -471,6 +509,8 @@
                .style("stroke", function(d, i) { return textStrokeColours(i); })
                .style("fill", function(d, i) { return textFillColours(i); })
                .text(function(d) { return d.label; });
+
+        centerVennDiagram( diagram, width, height, padding );
 
         return {'svg' : svg,
                 'nodes' : nodes,
