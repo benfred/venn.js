@@ -289,7 +289,7 @@
         }
         return ret;
     }
-   
+
     /** finds the zeros of a function, given two starting points (which must
      * have opposite signs */
     venn.bisect = function(f, a, b, parameters) {
@@ -314,7 +314,7 @@
 
             if (fMid * fA >= 0) {
                 a = mid;
-            } 
+            }
 
             if ((Math.abs(delta) < tolerance) || (fMid == 0)) {
                 return mid;
@@ -467,6 +467,7 @@
                .attr("x", function(d) { return d.x; })
                .attr("y", function(d) { return d.y; })
                .attr("text-anchor", "middle")
+               .attr("dy", "0.35em")
                .style("stroke", function(d, i) { return textStrokeColours(i); })
                .style("fill", function(d, i) { return textFillColours(i); })
                .text(function(d) { return d.label; });
