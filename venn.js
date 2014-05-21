@@ -71,7 +71,7 @@
         }
 
         // compute distances between all the points
-        for (var i = 0; i < overlaps.length; ++i) {
+        for (i = 0; i < overlaps.length; ++i) {
             var current = overlaps[i];
             if (current.sets.length !== 2) {
                 continue;
@@ -151,8 +151,8 @@
 
         for (i = 1; i < mostOverlapped.length; ++i) {
             var setIndex = mostOverlapped[i].set,
-                set = sets[setIndex],
                 overlap = setOverlaps[setIndex].filter(isPositioned);
+            set = sets[setIndex];
             overlap.sort(sortOrder);
 
             if (overlap.length === 0) {
@@ -190,7 +190,7 @@
             // we have some candidate positions for the set, examine loss
             // at each position to figure out where to put it at
             var bestLoss = 1e50, bestPoint = points[0];
-            for (var j = 0; j < points.length; ++j) {
+            for (j = 0; j < points.length; ++j) {
                 sets[setIndex].x = points[j].x;
                 sets[setIndex].y = points[j].y;
                 var loss = venn.lossFunction(sets, overlaps);
@@ -339,8 +339,8 @@
             throw "Initial bisect points must have opposite signs";
         }
 
-        if (fA == 0) return a;
-        if (fB == 0) return b;
+        if (fA === 0) return a;
+        if (fB === 0) return b;
 
         for (var i = 0; i < maxIterations; ++i) {
             delta /= 2;
@@ -351,12 +351,12 @@
                 a = mid;
             }
 
-            if ((Math.abs(delta) < tolerance) || (fMid == 0)) {
+            if ((Math.abs(delta) < tolerance) || (fMid === 0)) {
                 return mid;
             }
         }
         return a + delta;
-    }
+    };
 
     /** minimizes a function using the downhill simplex method */
     venn.fmin = function(f, x0, parameters) {
@@ -763,4 +763,3 @@
         return center;
     };
 }(window.circleIntersection = window.circleIntersection || {}));
-
