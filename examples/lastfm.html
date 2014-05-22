@@ -14,17 +14,9 @@
 <script>
 
 d3.json("./lastfm.json", function(response, data) {
-    console.log(response);
-    console.log(data);
-    var sets = data['sets'],
-        overlaps = data['overlaps'];
-
-    var w = Math.min(450, document.documentElement.clientWidth-30);
-
-     venn.drawD3Diagram(d3.select(".lastfm"),
-                        venn.venn(data['sets'],
-                                  data['overlaps']), w, .85 * w);
-
+    venn.drawD3Diagram(d3.select(".lastfm"),
+                       venn.venn(data['sets'],
+                                 data['overlaps']), 450, 450);
 });
 </script>
 </html>
