@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Last.fm venn.js example</title>
+</head>
+
+<body>
+    <div class="lastfm"></div>
+</body>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="../venn.js"></script>
+<script>
+
+d3.json("./lastfm.json", function(response, data) {
+    venn.drawD3Diagram(d3.select(".lastfm"),
+                       venn.venn(data['sets'],
+                                 data['overlaps']), 450, 450);
+});
+</script>
+</html>

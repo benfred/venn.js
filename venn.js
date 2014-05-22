@@ -49,27 +49,14 @@
     /** Returns the distance necessary for two circles of radius r1 + r2 to
     have the overlap area 'overlap' */
     venn.distanceFromIntersectArea = function(r1, r2, overlap) {
-        if (overlap <= 0) {
-            return (r1 + r2);
+        // handle complete overlapped circles
+        if (Math.min(r1, r2) * Math.min(r1,r2) * Math.PI <= overlap) {
+            return Math.abs(r1 - r2);
         }
 
-        function loss(distance) {
-            var actual;
-            if (distance[0] > (r1 + r2)) {
-                actual = (r1 + r2) - distance[0];
-            } else {
-                actual = circleIntersection.circleOverlap(r1, r2, distance[0]);
-            }
-            var ret = (actual - overlap) * (actual - overlap);
-            return ret;
-        }
-
-        var ret =  venn.fmin(loss, [Math.abs(r1-r2)]);
-
-        if (ret.f > 1e-3) {
-            console.log("failed: " + r1 + " " + r2 + " " + overlap + " " + ret.f);
-        }
-        return ret.solution[0];
+        return venn.bisect(function(distance) {
+            return circleIntersection.circleOverlap(r1, r2, distance) - overlap;
+        }, 0, r1 + r2);
     };
 
     /// gets a matrix of euclidean distances between all sets in venn diagram
@@ -84,7 +71,7 @@
         }
 
         // compute distances between all the points
-        for (var i = 0; i < overlaps.length; ++i) {
+        for (i = 0; i < overlaps.length; ++i) {
             var current = overlaps[i];
             if (current.sets.length !== 2) {
                 continue;
@@ -100,7 +87,7 @@
         return distances;
     };
 
-    /** Lays out a venn diagram greedily, going from most overlapped sets to
+    /** Lays out a Venn diagram greedily, going from most overlapped sets to
     least overlapped, attempting to position each new set such that the
     overlapping areas to already positioned sets are basically right */
     venn.greedyLayout = function(sets, overlaps) {
@@ -164,21 +151,21 @@
 
         for (i = 1; i < mostOverlapped.length; ++i) {
             var setIndex = mostOverlapped[i].set,
-                set = sets[setIndex],
                 overlap = setOverlaps[setIndex].filter(isPositioned);
+            set = sets[setIndex];
             overlap.sort(sortOrder);
 
             if (overlap.length === 0) {
-                throw "Need overlap information for set " + set;
+                throw "Need overlap information for set " + JSON.stringify( set );
             }
 
             var points = [];
             for (var j = 0; j < overlap.length; ++j) {
-                // get appropiate distance from most overlapped already added set
+                // get appropriate distance from most overlapped already added set
                 var p1 = sets[overlap[j].set],
                     d1 = distances[setIndex][overlap[j].set];
 
-                // sample postions at 90 degrees for maximum aesheticness
+                // sample positions at 90 degrees for maximum aesthetics
                 points.push({x : p1.x + d1, y : p1.y});
                 points.push({x : p1.x - d1, y : p1.y});
                 points.push({y : p1.y + d1, x : p1.x});
@@ -203,7 +190,7 @@
             // we have some candidate positions for the set, examine loss
             // at each position to figure out where to put it at
             var bestLoss = 1e50, bestPoint = points[0];
-            for (var j = 0; j < points.length; ++j) {
+            for (j = 0; j < points.length; ++j) {
                 sets[setIndex].x = points[j].x;
                 sets[setIndex].y = points[j].y;
                 var loss = venn.lossFunction(sets, overlaps);
@@ -221,7 +208,7 @@
 
     /// Uses multidimensional scaling to approximate a first layout here
     venn.classicMDSLayout = function(sets, overlaps) {
-        // get the distance matix
+        // get the distance matrix
         var distances = venn.getDistanceMatrix(sets, overlaps);
 
         // get positions for each set
@@ -301,6 +288,75 @@
         }
         return ret;
     }
+
+    function centerVennDiagram( diagram, width, height, padding ) {
+        var diagramBoundaries;
+        var allowedWidth = width - ( 2 * ( padding || 0 ) );
+        var allowedHeight = height - ( 2 * ( padding || 0 ) );
+        var scale;
+        var transformX, transformY;
+        var transform = "";
+
+        if ( diagram ) {
+            diagramBoundaries = diagram[ 0 ][ 0 ].getBBox();
+            if ( diagramBoundaries && width && height ) {
+
+                //  See if we need to scale to fit the width/height
+                if ( diagramBoundaries.width > allowedWidth ) {
+                    scale = allowedWidth / diagramBoundaries.width;
+                }
+                if ( diagramBoundaries.height > allowedHeight ) {
+                    if ( !scale || ( allowedHeight / diagramBoundaries.height ) < scale ) {
+                        scale = allowedHeight / diagramBoundaries.height;
+                    }
+                }
+
+                if ( scale ) {
+                    transform = "scale(" + scale + ")";
+                }
+                else {
+                    scale = 1;
+                }
+
+                transformX = Math.floor( ( allowedWidth - ( diagramBoundaries.width * scale ) ) / 2 );
+                transformY = Math.floor( ( allowedHeight - ( diagramBoundaries.height * scale ) ) / 2 );
+                diagram.attr( "transform", "translate(" + transformX + ","  + transformY + ") " + transform );
+            }
+        }
+    }
+
+    /** finds the zeros of a function, given two starting points (which must
+     * have opposite signs */
+    venn.bisect = function(f, a, b, parameters) {
+        parameters = parameters || {};
+        var maxIterations = parameters.maxIterations || 100,
+            tolerance = parameters.tolerance || 1e-10,
+            fA = f(a),
+            fB = f(b),
+            delta = b - a;
+
+        if (fA * fB > 0) {
+            throw "Initial bisect points must have opposite signs";
+        }
+
+        if (fA === 0) return a;
+        if (fB === 0) return b;
+
+        for (var i = 0; i < maxIterations; ++i) {
+            delta /= 2;
+            var mid = a + delta,
+                fMid = f(mid);
+
+            if (fMid * fA >= 0) {
+                a = mid;
+            }
+
+            if ((Math.abs(delta) < tolerance) || (fMid === 0)) {
+                return mid;
+            }
+        }
+        return a + delta;
+    };
 
     /** minimizes a function using the downhill simplex method */
     venn.fmin = function(f, x0, parameters) {
@@ -411,34 +467,54 @@
                 solution : simplex[0]};
     };
 
-    venn.drawD3Diagram = function(element, dataset, width, height, padding) {
-        padding = padding || 6;
+    venn.drawD3Diagram = function(element, dataset, width, height, parameters) {
+        parameters = parameters || {};
+
+        var colours = d3.scale.category10(),
+            circleFillColours = parameters.circleFillColours || colours,
+            circleStrokeColours = parameters.circleStrokeColours || circleFillColours,
+            circleStrokeWidth = parameters.circleStrokeWidth || function(i) { return 0; },
+            textFillColours = parameters.textFillColours || colours,
+            textStrokeColours = parameters.textStrokeColours || textFillColours,
+            nodeOpacity = parameters.opacity || 0.3,
+            padding = parameters.padding || 6;
+
         dataset = venn.scaleSolution(dataset, width, height, padding);
         var svg = element.append("svg")
                 .attr("width", width)
                 .attr("height", height);
 
-        var nodes = svg.selectAll("circle")
+        var diagram = svg.append( "g" );
+
+        var nodes = diagram.selectAll("circle")
                          .data(dataset)
                          .enter()
                          .append("g");
 
-        var colours = d3.scale.category10();
-
-        nodes.append("circle")
+        var circles = nodes.append("circle")
                .attr("r",  function(d) { return d.radius; })
-               .style("fill-opacity", 0.3)
+               .style("fill-opacity", nodeOpacity)
                .attr("cx", function(d) { return d.x; })
                .attr("cy", function(d) { return d.y; })
-               .style("fill", function(d, i) { return colours(i); });
+               .style("stroke", function(d, i) { return circleStrokeColours(i); })
+               .style("stroke-width", function(d, i) { return circleStrokeWidth(i); })
+               .style("fill", function(d, i) { return circleFillColours(i); });
 
-        nodes.append("text")
+        var text = nodes.append("text")
                .attr("x", function(d) { return d.x; })
                .attr("y", function(d) { return d.y; })
                .attr("text-anchor", "middle")
-               .style("stroke", function(d, i) { return colours(i); })
-               .style("fill", function(d, i) { return colours(i); })
+               .attr("dy", "0.35em")
+               .style("stroke", function(d, i) { return textStrokeColours(i); })
+               .style("fill", function(d, i) { return textFillColours(i); })
                .text(function(d) { return d.label; });
+
+        centerVennDiagram( diagram, width, height, padding );
+
+        return {'svg' : svg,
+                'nodes' : nodes,
+                'circles' : circles,
+                'text' : text };
     };
 
     venn.updateD3Diagram = function(element, dataset) {
@@ -459,6 +535,7 @@
             .data(dataset)
             .transition()
             .duration(400)
+            .text(function(d) { return d.label; })
             .attr("x", function(d) { return d.x; })
             .attr("y", function(d) { return d.y; });
     };
@@ -639,7 +716,7 @@
             return 0;
         }
 
-        // completly overlapped
+        // completely overlapped
         if (d <= Math.abs(r1 - r2)) {
             return Math.PI * Math.min(r1, r2) * Math.min(r1, r2);
         }
@@ -653,7 +730,7 @@
     /** Given two circles (containing a x/y/radius attributes),
     returns the intersecting points if possible.
     note: doesn't handle cases where there are infinitely many
-    intersection poiints (circles are equivalent):, or only one intersection point*/
+    intersection points (circles are equivalent):, or only one intersection point*/
     circleIntersection.circleCircleIntersection = function(p1, p2) {
         var d = circleIntersection.distance(p1, p2),
             r1 = p1.radius,
@@ -687,4 +764,3 @@
         return center;
     };
 }(window.circleIntersection = window.circleIntersection || {}));
-
