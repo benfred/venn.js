@@ -535,6 +535,7 @@
             .data(dataset)
             .transition()
             .duration(400)
+            .text(function(d) { return d.label; })
             .attr("x", function(d) { return d.x; })
             .attr("y", function(d) { return d.y; });
     };
