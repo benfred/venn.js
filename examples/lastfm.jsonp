@@ -1,6 +1,4 @@
-{ 
-    "sets" : 
-    [
+var sets = [
          {"label": "Radiohead", "size": 77348},
          {"label": "Thom Yorke", "size": 5621},
          {"label": "John Lennon", "size": 7773},
@@ -16,8 +14,7 @@
          {"label": "Outkast", "size": 8444}
     ],
 
-    "overlaps" : 
-    [
+    overlaps = [
          {"sets": [0, 1], "size": 4832},
          {"sets": [0, 2], "size": 2602},
          {"sets": [0, 3], "size": 6141},
@@ -96,5 +93,4 @@
          {"sets": [10, 11], "size": 51},
          {"sets": [10, 12], "size": 115},
          {"sets": [11, 12], "size": 162}
-    ]
-}
+    ];
