@@ -96,7 +96,7 @@ included here to draw a svg path element around the intersection areas. To add
 a tooltip to the intersection area, use the 'intersectionAreaPath' method to
 define the area, and then add appropiate events to handle the tooltip:
 
-```
+```javascript
 diagram.svg.select("g").selectAll("path")
     .data(overlaps)
     .enter()
