@@ -89,6 +89,46 @@ diagram.circles
 
 [View this example](http://benfred.github.io/venn.js/examples/styled.html)
 
+##### Adding tooltips to the intersection areas
+
+The intersection areas aren't drawn by default, but there is some code
+included here to draw a svg path element around the intersection areas. To add
+a tooltip to the intersection area, use the 'intersectionAreaPath' method to
+define the area, and then add appropiate events to handle the tooltip:
+
+```
+diagram.svg.select("g").selectAll("path")
+    .data(overlaps)
+    .enter()
+    .append("path")
+    .attr("d", function(d) { 
+        return venn.intersectionAreaPath(d.sets.map(function(j) { return sets[j]; })); 
+    })
+    .style("fill-opacity","0")
+    .style("fill", "black")
+    .style("stroke-opacity", 0)
+    .style("stroke", "white")
+    .style("stroke-width", "2")
+    .on("mouseover", function(d, i) {
+        d3.select(this).transition()
+            .style("fill-opacity", .1)
+            .style("stroke-opacity", 1);
+        tooltip.transition().style("opacity", .9);
+        tooltip.text(d.size + " users");
+    })
+    .on("mouseout", function(d, i) {
+        d3.select(this).transition()
+            .style("fill-opacity", 0)
+            .style("stroke-opacity", 0);
+        tooltip.transition().style("opacity", 0);
+    })
+    .on("mousemove", function() {
+        tooltip.style("left", (d3.event.pageX) + "px")
+               .style("top", (d3.event.pageY - 28) + "px");
+    })
+```
+[View this example](http://benfred.github.io/venn.js/examples/intersection_tooltip.html)
+
 ##### MDS Layout
 
 In most cases the greedy initial layout does a good job of positioning the

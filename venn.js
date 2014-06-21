@@ -467,6 +467,25 @@
                 solution : simplex[0]};
     };
 
+    /** returns a svg path of the intersection area of a bunch of circles */
+    venn.intersectionAreaPath = function(circles) {
+        var stats = {};
+        circleIntersection.intersectionArea(circles, stats);
+        var arcs = stats.arcs;
+
+        if (arcs.length == 0) {
+            return "M 0 0";
+        }
+
+        var ret = ["\nM", arcs[0].p2.x, arcs[0].p2.y];
+        for (var i = 0; i < arcs.length; ++i) {
+            var arc = arcs[i], r = arc.circle.radius, wide = arc.width > r;
+            ret.push("\nA", r, r, 0, wide ? 1 : 0, 1, arc.p1.x, arc.p1.y);
+        }
+
+        return ret.join(" ");
+    }
+    
     venn.drawD3Diagram = function(element, dataset, width, height, parameters) {
         parameters = parameters || {};
 
@@ -486,7 +505,7 @@
 
         var diagram = svg.append( "g" );
 
-        var nodes = diagram.selectAll("circle")
+        var nodes = diagram.append("g").selectAll("circle")
                          .data(dataset)
                          .enter()
                          .append("g");

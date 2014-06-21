@@ -26,43 +26,39 @@
 <a href="./lastfm.html">View Original Styling</a>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="../venn.js"></script>
+
+
+<script src="./lastfm.jsonp"></script>
 <script>
+var diagram = venn.drawD3Diagram(d3.select(".lastfm"),
+                                 venn.venn(sets, overlaps), 
+                                 450, 450);
 
+// add a border, darken up the circles, change text colour
+diagram.circles.style("fill-opacity", .6)
+               .style("stroke-width", 1);
+diagram.text.style("stroke", "#444")
+            .style("fill", "#444");
 
-d3.json("./lastfm.json", function(response, data) {
-    var sets = data['sets'],
-        overlaps = data['overlaps'];
+// add a tooltip showing the size of each set
+var tooltip = d3.select("body").append("div")
+    .attr("class", "venntooltip");
 
-    var diagram = venn.drawD3Diagram(d3.select(".lastfm"),
-                                     venn.venn(sets, overlaps), 
-                                     450, 450);
-
-    // add a border, darken up the circles, change text colour
-    diagram.circles.style("fill-opacity", .6)
-                   .style("stroke-width", 1);
-    diagram.text.style("stroke", "#444")
-                .style("fill", "#444");
-    
-    // add a tooltip showing the size of each set
-    var tooltip = d3.select("body").append("div")
-        .attr("class", "venntooltip");
-
-    diagram.circles
-        .on("mousemove", function() {
-            tooltip.style("left", (d3.event.pageX) + "px")
-                   .style("top", (d3.event.pageY - 28) + "px");
-        })
-        .on("mouseover", function(d, i) {
-            d3.select(this).style("fill-opacity", .8);
-            d3.select(this).style("stroke-width", 2);
-            tooltip.transition().style("opacity", .9);
-            tooltip.text(d.size + " users");
-        })
-        .on("mouseout", function(d, i) {
-            d3.select(this).style("fill-opacity", 0.6);
-            tooltip.transition().style("opacity", 0);
-            d3.select(this).style("stroke-width", 0);
-        });
-});
+diagram.circles
+    .on("mousemove", function() {
+        tooltip.style("left", (d3.event.pageX) + "px")
+               .style("top", (d3.event.pageY - 28) + "px");
+    })
+    .on("mouseover", function(d, i) {
+        d3.select(this).style("fill-opacity", .8);
+        d3.select(this).style("stroke-width", 2);
+        tooltip.transition().style("opacity", .9);
+        tooltip.text(d.size + " users");
+    })
+    .on("mouseout", function(d, i) {
+        d3.select(this).style("fill-opacity", 0.6);
+        tooltip.transition().style("opacity", 0);
+        d3.select(this).style("stroke-width", 0);
+    });
 </script>
 </html>
