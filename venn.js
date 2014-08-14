@@ -494,7 +494,6 @@
             circleStrokeColours = parameters.circleStrokeColours || circleFillColours,
             circleStrokeWidth = parameters.circleStrokeWidth || function(i) { return 0; },
             textFillColours = parameters.textFillColours || colours,
-            textStrokeColours = parameters.textStrokeColours || textFillColours,
             nodeOpacity = parameters.opacity || 0.3,
             padding = parameters.padding || 6;
 
@@ -520,11 +519,11 @@
                .style("fill", function(d, i) { return circleFillColours(i); });
 
         var text = nodes.append("text")
-               .attr("x", function(d) { return d.x; })
-               .attr("y", function(d) { return d.y; })
+               .attr("x", function(d) { return Math.floor(d.x); })
+               .attr("y", function(d) { return Math.floor(d.y); })
                .attr("text-anchor", "middle")
                .attr("dy", "0.35em")
-               .style("stroke", function(d, i) { return textStrokeColours(i); })
+               .attr("stroke-width", 0)
                .style("fill", function(d, i) { return textFillColours(i); })
                .text(function(d) { return d.label; });
 
