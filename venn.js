@@ -55,7 +55,7 @@
         }
 
         return venn.bisect(function(distance) {
-            return circleIntersection.circleOverlap(r1, r2, distance) - overlap;
+            return venn.circleOverlap(r1, r2, distance) - overlap;
         }, 0, r1 + r2);
     };
 
@@ -177,7 +177,7 @@
                     var p2 = sets[overlap[k].set],
                         d2 = distances[setIndex][overlap[k].set];
 
-                    var extraPoints = circleIntersection.circleCircleIntersection(
+                    var extraPoints = venn.circleCircleIntersection(
                         { x: p1.x, y: p1.y, radius: d1},
                         { x: p2.x, y: p2.y, radius: d2});
 
@@ -238,10 +238,10 @@
             if (area.sets.length == 2) {
                 var left = sets[area.sets[0]],
                     right = sets[area.sets[1]];
-                overlap = circleIntersection.circleOverlap(left.radius, right.radius,
-                                circleIntersection.distance(left, right));
+                overlap = venn.circleOverlap(left.radius, right.radius,
+                                             venn.distance(left, right));
             } else {
-                overlap = circleIntersection.intersectionArea(getCircles(area.sets));
+                overlap = venn.intersectionArea(getCircles(area.sets));
             }
 
             output += (overlap - area.size) * (overlap - area.size);
@@ -470,7 +470,7 @@
     /** returns a svg path of the intersection area of a bunch of circles */
     venn.intersectionAreaPath = function(circles) {
         var stats = {};
-        circleIntersection.intersectionArea(circles, stats);
+        venn.intersectionArea(circles, stats);
         var arcs = stats.arcs;
 
         if (arcs.length == 0) {
@@ -557,20 +557,18 @@
             .attr("x", function(d) { return d.x; })
             .attr("y", function(d) { return d.y; });
     };
-}(window.venn = window.venn || {}));
-(function(circleIntersection) {
     "use strict";
     var SMALL = 1e-10;
 
     /** Returns the intersection area of a bunch of circles (where each circle
      is an object having an x,y and radius property) */
-    circleIntersection.intersectionArea = function(circles, stats) {
+    venn.intersectionArea = function(circles, stats) {
         // get all the intersection points of the circles
         var intersectionPoints = getIntersectionPoints(circles);
 
         // filter out points that aren't included in all the circles
         var innerPoints = intersectionPoints.filter(function (p) {
-            return circleIntersection.containedInCircles(p, circles);
+            return venn.containedInCircles(p, circles);
         });
 
         var arcArea = 0, polygonArea = 0, arcs = [], i;
@@ -580,7 +578,7 @@
         if (innerPoints.length > 1) {
             // sort the points by angle from the center of the polygon, which lets
             // us just iterate over points to get the edges
-            var center = circleIntersection.getCenter(innerPoints);
+            var center = venn.getCenter(innerPoints);
             for (i = 0; i < innerPoints.length; ++i ) {
                 var p = innerPoints[i];
                 p.angle = Math.atan2(p.x - center.x, p.y - center.y);
@@ -617,7 +615,7 @@
                         // and use that angle to figure out the width of the
                         // arc
                         var a = a2 - angleDiff/2,
-                            width = circleIntersection.distance(midPoint, {
+                            width = venn.distance(midPoint, {
                                 x : circle.x + circle.radius * Math.sin(a),
                                 y : circle.y + circle.radius * Math.cos(a)
                             });
@@ -632,7 +630,7 @@
                     }
                 }
                 arcs.push(arc);
-                arcArea += circleIntersection.circleArea(arc.circle.radius, arc.width);
+                arcArea += venn.circleArea(arc.circle.radius, arc.width);
                 p2 = p1;
             }
         } else {
@@ -649,7 +647,7 @@
             // the other circles
             var disjoint = false;
             for (i = 0; i < circles.length; ++i) {
-                if (circleIntersection.distance(circles[i], smallest) > Math.abs(smallest.radius - circles[i].radius)) {
+                if (venn.distance(circles[i], smallest) > Math.abs(smallest.radius - circles[i].radius)) {
                     disjoint = true;
                     break;
                 }
@@ -681,9 +679,9 @@
     };
 
     /** returns whether a point is contained by all of a list of circles */
-    circleIntersection.containedInCircles = function(point, circles) {
+    venn.containedInCircles = function(point, circles) {
         for (var i = 0; i < circles.length; ++i) {
-            if (circleIntersection.distance(point, circles[i]) > circles[i].radius + SMALL) {
+            if (venn.distance(point, circles[i]) > circles[i].radius + SMALL) {
                 return false;
             }
         }
@@ -695,7 +693,7 @@
         var ret = [];
         for (var i = 0; i < circles.length; ++i) {
             for (var j = i + 1; j < circles.length; ++j) {
-                var intersect = circleIntersection.circleCircleIntersection(circles[i],
+                var intersect = venn.circleCircleIntersection(circles[i],
                                                               circles[j]);
                 for (var k = 0; k < intersect.length; ++k) {
                     var p = intersect[k];
@@ -707,19 +705,19 @@
         return ret;
     }
 
-    circleIntersection.circleIntegral = function(r, x) {
+    venn.circleIntegral = function(r, x) {
         var y = Math.sqrt(r * r - x * x);
         return x * y + r * r * Math.atan2(x, y);
     };
 
     /** Returns the area of a circle of radius r - up to width */
-    circleIntersection.circleArea = function(r, width) {
-        return circleIntersection.circleIntegral(r, width - r) - circleIntersection.circleIntegral(r, -r);
+    venn.circleArea = function(r, width) {
+        return venn.circleIntegral(r, width - r) - venn.circleIntegral(r, -r);
     };
 
 
     /** euclidean distance between two points */
-    circleIntersection.distance = function(p1, p2) {
+    venn.distance = function(p1, p2) {
         return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) +
                          (p1.y - p2.y) * (p1.y - p2.y));
     };
@@ -728,7 +726,7 @@
     /** Returns the overlap area of two circles of radius r1 and r2 - that
     have their centers separated by distance d. Simpler faster
     circle intersection for only two circles */
-    circleIntersection.circleOverlap = function(r1, r2, d) {
+    venn.circleOverlap = function(r1, r2, d) {
         // no overlap
         if (d >= r1 + r2) {
             return 0;
@@ -741,7 +739,7 @@
 
         var w1 = r1 - (d * d - r2 * r2 + r1 * r1) / (2 * d),
             w2 = r2 - (d * d - r1 * r1 + r2 * r2) / (2 * d);
-        return circleIntersection.circleArea(r1, w1) + circleIntersection.circleArea(r2, w2);
+        return venn.circleArea(r1, w1) + venn.circleArea(r2, w2);
     };
 
 
@@ -749,8 +747,8 @@
     returns the intersecting points if possible.
     note: doesn't handle cases where there are infinitely many
     intersection points (circles are equivalent):, or only one intersection point*/
-    circleIntersection.circleCircleIntersection = function(p1, p2) {
-        var d = circleIntersection.distance(p1, p2),
+    venn.circleCircleIntersection = function(p1, p2) {
+        var d = venn.distance(p1, p2),
             r1 = p1.radius,
             r2 = p2.radius;
 
@@ -771,7 +769,7 @@
     };
 
     /** Returns the center of a bunch of points */
-    circleIntersection.getCenter = function(points) {
+    venn.getCenter = function(points) {
         var center = { x: 0, y: 0};
         for (var i =0; i < points.length; ++i ) {
             center.x += points[i].x;
@@ -781,4 +779,4 @@
         center.y /= points.length;
         return center;
     };
-}(window.circleIntersection = window.circleIntersection || {}));
+}(window.venn = window.venn || {}));
