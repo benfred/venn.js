@@ -39,12 +39,12 @@ To have a layout that reacts to a change in input, you just need to recompute th
 ```javascript
 // draw the initial set
 var sets = venn.venn(getSets(), getSetIntersections());
-venn.drawD3Diagram(d3.select(".dynamic"), sets, w, h);
+var diagram = venn.drawD3Diagram(d3.select(".dynamic"), sets, w, h);
 
 // redraw the sets on any change in input
 d3.selectAll("input").on("change", function() {
     var sets = venn.venn(getSets(), getSetIntersections());
-    venn.updateD3Diagram(d3.select(".dynamic"), sets);
+    venn.updateD3Diagram(diagram, sets);
 });
 ```
 
