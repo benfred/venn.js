@@ -295,7 +295,7 @@
     function wrapText() {
         var text = d3.select(this),
             data = text.datum(),
-            width = 2 * data.radius,
+            width = data.radius,
             words = data.label.split(/\s+/).reverse(),
             maxLines = 3,
             minChars = (data.label.length + words.length) / maxLines,
@@ -320,8 +320,8 @@
         }
 
         var initial = 0.35 - lineNumber * lineHeight / 2,
-            x = data.x,
-            y = data.y;
+            x = data.textCenter.x,
+            y = data.textCenter.y;
 
         text.selectAll("tspan")
             .attr("x", x)
@@ -500,6 +500,55 @@
         return ret.join(" ");
     };
 
+    // computes the center for text by sampling perimiter of circle, and taking
+    // the average of points on perimeter that are only in that circle
+    function computeTextCenters(sets, width, height, diagram) {
+        // basically just finding the center point of each region by sampling
+        // points in a grid and taking the average sampled point for each region
+        // There is probably an analytic way of computing this exactly, but
+        // this works well enough for our purposes
+        var sums = [];
+        for (var i = 0; i < sets.length; ++i) {
+            sums.push({'x' : 0, 'y' : 0, 'count' : 0});
+        }
+
+        var samples = 32;
+        for (var i = 0; i < samples; ++i) {
+            var x = i * width / samples;
+            for (var j = 0; j < samples; ++j) {
+                var y = j * height / samples;
+                var point = {'x' : x, 'y' : y};
+
+                var contained = []
+
+                for (var k = 0; k < sets.length; ++k) {
+                    if (venn.distance(point, sets[k]) <= sets[k].radius) {
+                        contained.push(k);
+                    }
+                }
+                if (contained.length == 1) {
+                    var sum = sums[contained[0]];
+                    sum.x += point.x;
+                    sum.y += point.y;
+                    sum.count += 1;
+                }
+            }
+        }
+
+        for (var i = 0; i < sets.length; ++i) {
+            var sum = sums[i];
+            if (sum.count) {
+                sets[i].textCenter = { 'x' : sum.x / sum.count,
+                                       'y' : sum.y / sum.count};
+            } else {
+                // no sampled points, possibly completely overlapped (or tiny)
+                // use circle centre
+                sets[i].textCenter = { 'x' : sets[i].x,
+                                       'y' : sets[i].y};
+            }
+        }
+    }
+
     venn.drawD3Diagram = function(element, dataset, width, height, parameters) {
         parameters = parameters || {};
 
@@ -507,6 +556,8 @@
             padding = ('padding' in parameters) ? parameters.padding : 6;
 
         dataset = venn.scaleSolution(dataset, width, height, padding);
+        computeTextCenters(dataset, width, height);
+
         var svg = element.append("svg")
                 .attr("width", width)
                 .attr("height", height);
@@ -527,8 +578,8 @@
 
         var text = nodes.append("text")
                .attr("dy", ".35em")
-               .attr("x", function(d) { return Math.floor(d.x); })
-               .attr("y", function(d) { return Math.floor(d.y); })
+               .attr("x", function(d) { return Math.floor(d.textCenter.x); })
+               .attr("y", function(d) { return Math.floor(d.textCenter.y); })
                .attr("text-anchor", "middle")
                .style("fill", function(d, i) { return colours(i); })
                .call(function (text) { text.each(wrapText); });
@@ -549,6 +600,7 @@
             height = parseInt(svg.attr('height'), 10);
 
         dataset = venn.scaleSolution(dataset, width, height, padding);
+        computeTextCenters(dataset, width, height);
 
         var transition = diagram.nodes
             .data(dataset)
@@ -566,8 +618,8 @@
         transition.select("text")
             .text(function (d) { return d.label; } )
             .each("end", wrapText)
-            .attr("x", function(d) { return d.x; })
-            .attr("y", function(d) { return d.y; });
+            .attr("x", function(d) { return Math.floor(d.textCenter.x); })
+            .attr("y", function(d) { return Math.floor(d.textCenter.y); });
     };
 
     var SMALL = 1e-10;
