@@ -251,7 +251,8 @@
     };
 
     /** Scales a solution from venn.venn or venn.greedyLayout such that it fits in
-    a rectangle of width/height - with padding around the borders. */
+    a rectangle of width/height - with padding around the borders. also
+    centers the diagram in the available space at the same time */
     venn.scaleSolution = function(solution, width, height, padding) {
         var minMax = function(d) {
             var hi = Math.max.apply(null, solution.map(
@@ -268,18 +269,67 @@
             yRange = minMax('y'),
             xScaling = width  / (xRange.max - xRange.min),
             yScaling = height / (yRange.max - yRange.min),
-            scaling = Math.min(yScaling, xScaling);
+            scaling = Math.min(yScaling, xScaling),
+
+            // while we're at it, center the diagram too
+            xOffset = (width -  (xRange.max - xRange.min) * scaling) / 2,
+            yOffset = (height - (yRange.max - yRange.min) * scaling) / 2;
 
         for (var i = 0; i < solution.length; ++i) {
             var set = solution[i];
             set.radius = scaling * set.radius;
-            set.x = padding + (set.x - xRange.min) * scaling;
-            set.y = padding + (set.y - yRange.min) * scaling;
+            set.x = padding + xOffset + (set.x - xRange.min) * scaling;
+            set.y = padding + yOffset + (set.y - yRange.min) * scaling;
         }
-        solution.scaling = scaling;
 
         return solution;
     };
+
+    // sometimes text doesn't fit inside the circle, if thats the case lets wrap
+    // the text here such that it fits
+    // todo: looks like this might be merged into d3 (
+    // https://github.com/mbostock/d3/issues/1642),
+    // also worth checking out is
+    // http://engineering.findthebest.com/wrapping-axis-labels-in-d3-js/
+    // this seems to be one of those things that should be easy but isn't
+    function wrapText() {
+        var text = d3.select(this),
+            data = text.datum(),
+            width = data.radius,
+            words = data.label.split(/\s+/).reverse(),
+            maxLines = 3,
+            minChars = (data.label.length + words.length) / maxLines,
+            word = words.pop(),
+            line = [word],
+            joined,
+            lineNumber = 0,
+            lineHeight = 1.1, // ems
+            tspan = text.text(null).append("tspan").text(word);
+
+        while (word = words.pop()) {
+            line.push(word);
+            joined = line.join(" ");
+            tspan.text(joined);
+            if (joined.length > minChars && tspan.node().getComputedTextLength() > width) {
+                line.pop();
+                tspan.text(line.join(" "));
+                line = [word];
+                tspan = text.append("tspan").text(word);
+                lineNumber++;
+            }
+        }
+
+        var initial = 0.35 - lineNumber * lineHeight / 2,
+            x = data.textCenter.x,
+            y = data.textCenter.y;
+
+        text.selectAll("tspan")
+            .attr("x", x)
+            .attr("y", y)
+            .attr("dy", function(d, i) {
+                 return (initial + i * lineHeight) + "em";
+            });
+    }
 
     function weightedSum(a, b) {
         var ret = new Array(a[1].length || 0);
@@ -287,42 +337,6 @@
             ret[j] = a[0] * a[1][j] + b[0] * b[1][j];
         }
         return ret;
-    }
-
-    function centerVennDiagram( diagram, width, height, padding ) {
-        var diagramBoundaries;
-        var allowedWidth = width - ( 2 * ( padding || 0 ) );
-        var allowedHeight = height - ( 2 * ( padding || 0 ) );
-        var scale;
-        var transformX, transformY;
-        var transform = "";
-
-        if ( diagram ) {
-            diagramBoundaries = diagram[ 0 ][ 0 ].getBBox();
-            if ( diagramBoundaries && width && height ) {
-
-                //  See if we need to scale to fit the width/height
-                if ( diagramBoundaries.width > allowedWidth ) {
-                    scale = allowedWidth / diagramBoundaries.width;
-                }
-                if ( diagramBoundaries.height > allowedHeight ) {
-                    if ( !scale || ( allowedHeight / diagramBoundaries.height ) < scale ) {
-                        scale = allowedHeight / diagramBoundaries.height;
-                    }
-                }
-
-                if ( scale ) {
-                    transform = "scale(" + scale + ")";
-                }
-                else {
-                    scale = 1;
-                }
-
-                transformX = Math.floor( ( allowedWidth - ( diagramBoundaries.width * scale ) ) / 2 );
-                transformY = Math.floor( ( allowedHeight - ( diagramBoundaries.height * scale ) ) / 2 );
-                diagram.attr( "transform", "translate(" + transformX + ","  + transformY + ") " + transform );
-            }
-        }
     }
 
     /** finds the zeros of a function, given two starting points (which must
@@ -473,7 +487,7 @@
         venn.intersectionArea(circles, stats);
         var arcs = stats.arcs;
 
-        if (arcs.length == 0) {
+        if (arcs.length === 0) {
             return "M 0 0";
         }
 
@@ -484,20 +498,66 @@
         }
 
         return ret.join(" ");
+    };
+
+    // computes the center for text by sampling perimiter of circle, and taking
+    // the average of points on perimeter that are only in that circle
+    function computeTextCenters(sets, width, height, diagram) {
+        // basically just finding the center point of each region by sampling
+        // points in a grid and taking the average sampled point for each region
+        // There is probably an analytic way of computing this exactly, but
+        // this works well enough for our purposes
+        var sums = [];
+        for (var i = 0; i < sets.length; ++i) {
+            sums.push({'x' : 0, 'y' : 0, 'count' : 0});
+        }
+
+        var samples = 32;
+        for (var i = 0; i < samples; ++i) {
+            var x = i * width / samples;
+            for (var j = 0; j < samples; ++j) {
+                var y = j * height / samples;
+                var point = {'x' : x, 'y' : y};
+
+                var contained = []
+
+                for (var k = 0; k < sets.length; ++k) {
+                    if (venn.distance(point, sets[k]) <= sets[k].radius) {
+                        contained.push(k);
+                    }
+                }
+                if (contained.length == 1) {
+                    var sum = sums[contained[0]];
+                    sum.x += point.x;
+                    sum.y += point.y;
+                    sum.count += 1;
+                }
+            }
+        }
+
+        for (var i = 0; i < sets.length; ++i) {
+            var sum = sums[i];
+            if (sum.count) {
+                sets[i].textCenter = { 'x' : sum.x / sum.count,
+                                       'y' : sum.y / sum.count};
+            } else {
+                // no sampled points, possibly completely overlapped (or tiny)
+                // use circle centre
+                sets[i].textCenter = { 'x' : sets[i].x,
+                                       'y' : sets[i].y};
+            }
+        }
     }
-    
+
     venn.drawD3Diagram = function(element, dataset, width, height, parameters) {
         parameters = parameters || {};
 
         var colours = d3.scale.category10(),
-            circleFillColours = parameters.circleFillColours || colours,
-            circleStrokeColours = parameters.circleStrokeColours || circleFillColours,
-            circleStrokeWidth = parameters.circleStrokeWidth || function(i) { return 0; },
-            textFillColours = parameters.textFillColours || colours,
-            nodeOpacity = parameters.opacity || 0.3,
-            padding = parameters.padding || 6;
+            padding = ('padding' in parameters) ? parameters.padding : 6;
 
         dataset = venn.scaleSolution(dataset, width, height, padding);
+        computeTextCenters(dataset, width, height);
+
         var svg = element.append("svg")
                 .attr("width", width)
                 .attr("height", height);
@@ -511,23 +571,18 @@
 
         var circles = nodes.append("circle")
                .attr("r",  function(d) { return d.radius; })
-               .style("fill-opacity", nodeOpacity)
+               .style("fill-opacity", 0.3)
                .attr("cx", function(d) { return d.x; })
                .attr("cy", function(d) { return d.y; })
-               .style("stroke", function(d, i) { return circleStrokeColours(i); })
-               .style("stroke-width", function(d, i) { return circleStrokeWidth(i); })
-               .style("fill", function(d, i) { return circleFillColours(i); });
+               .style("fill", function(d, i) { return colours(i); });
 
         var text = nodes.append("text")
-               .attr("x", function(d) { return Math.floor(d.x); })
-               .attr("y", function(d) { return Math.floor(d.y); })
+               .attr("dy", ".35em")
+               .attr("x", function(d) { return Math.floor(d.textCenter.x); })
+               .attr("y", function(d) { return Math.floor(d.textCenter.y); })
                .attr("text-anchor", "middle")
-               .attr("dy", "0.35em")
-               .attr("stroke-width", 0)
-               .style("fill", function(d, i) { return textFillColours(i); })
-               .text(function(d) { return d.label; });
-
-        centerVennDiagram( diagram, width, height, padding );
+               .style("fill", function(d, i) { return colours(i); })
+               .call(function (text) { text.each(wrapText); });
 
         return {'svg' : svg,
                 'nodes' : nodes,
@@ -535,29 +590,38 @@
                 'text' : text };
     };
 
-    venn.updateD3Diagram = function(element, dataset) {
-        var svg = element.select("svg"),
+    venn.updateD3Diagram = function(diagram, dataset, parameters) {
+        parameters = parameters || {};
+        var padding = ('padding' in parameters) ? parameters.padding : 6,
+            duration = ('duration' in parameters) ? parameters.duration : 400;
+
+        var svg = diagram.svg,
             width = parseInt(svg.attr('width'), 10),
             height = parseInt(svg.attr('height'), 10);
 
-        dataset = venn.scaleSolution(dataset, width, height, 6);
-        element.selectAll("circle")
+        dataset = venn.scaleSolution(dataset, width, height, padding);
+        computeTextCenters(dataset, width, height);
+
+        var transition = diagram.nodes
             .data(dataset)
             .transition()
-            .duration(400)
+            .duration(duration);
+
+        transition.select("circle")
             .attr("cx", function(d) { return d.x; })
             .attr("cy", function(d) { return d.y; })
             .attr("r",  function(d) { return d.radius; });
 
-        element.selectAll("text")
-            .data(dataset)
-            .transition()
-            .duration(400)
-            .text(function(d) { return d.label; })
-            .attr("x", function(d) { return d.x; })
-            .attr("y", function(d) { return d.y; });
+        // transtitioning the text is a little tricky in the case
+        // of wrapping. so lets basically transition unwrapped text
+        // and at the end of the transition we'll wrap it again
+        transition.select("text")
+            .text(function (d) { return d.label; } )
+            .each("end", wrapText)
+            .attr("x", function(d) { return Math.floor(d.textCenter.x); })
+            .attr("y", function(d) { return Math.floor(d.textCenter.y); });
     };
-    "use strict";
+
     var SMALL = 1e-10;
 
     /** Returns the intersection area of a bunch of circles (where each circle

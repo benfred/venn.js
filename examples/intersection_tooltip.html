@@ -70,7 +70,7 @@ diagram.circles
     });
 
 // draw a path around each intersection area, add hover there as well
-diagram.svg.select("g").selectAll("path")
+diagram.svg.selectAll("path")
     .data(overlaps)
     .enter()
     .append("path")
