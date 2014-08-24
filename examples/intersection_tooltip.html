@@ -1,8 +1,14 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Intersection Tooltip venn.js example</title>
+<meta charset="utf-8">
+<title>Intersection Tooltip venn.js example</title>
+<style>
+body {
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 14px;
+}
+</style>
 </head>
 
 <body>
@@ -14,9 +20,10 @@
   position: absolute;
   text-align: center;
   width: 128px;
-  height: 18px;
+  height: 16px;
   background: #333;
   color: #ddd;
+  padding: 2px;
   border: 0px;
   border-radius: 8px;
   opacity: 0;
@@ -47,14 +54,16 @@ d3.selection.prototype.moveParentToFront = function() {
 diagram.circles
     .style("stroke-opacity", 0)
     .style("stroke", "white")
-    .style("stroke-width", "2")
+    .style("stroke-width", "2");
+
+diagram.nodes
     .on("mousemove", function() {
         tooltip.style("left", (d3.event.pageX) + "px")
                .style("top", (d3.event.pageY - 28) + "px");
     })
     .on("mouseover", function(d, i) {
-        var selection = d3.select(this);
-        d3.select(this).moveParentToFront()
+        var selection = d3.select(this).select("circle");
+        selection.moveParentToFront()
             .transition()
             .style("fill-opacity", .5)
             .style("stroke-opacity", 1);
@@ -63,7 +72,7 @@ diagram.circles
         tooltip.text(d.size + " users");
     })
     .on("mouseout", function(d, i) {
-        d3.select(this).transition()
+        d3.select(this).select("circle").transition()
             .style("fill-opacity", .3)
             .style("stroke-opacity", 0);
         tooltip.transition().style("opacity", 0);
