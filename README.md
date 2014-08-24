@@ -74,7 +74,7 @@ d3.selectAll("input").on("change", function() {
 
 [View this example](http://benfred.github.io/venn.js/examples/dynamic.html)
 
-#### Making the diagram interactive
+##### Making the diagram interactive
 
 Making the diagram interactive is basically the same idea as changing the style: just add event listeners to the returned elements. To change the text size and circle colours on mouseover:
 
@@ -93,7 +93,7 @@ diagram.nodes
 ```
 [View this example](http://benfred.github.io/venn.js/examples/interactive.html)
 
-#### Adding tooltips to the intersection areas
+##### Adding tooltips to the intersection areas
 
 The intersection areas aren't drawn by default, but there is some code
 included here to draw a svg path element around the intersection areas. To add
