@@ -320,8 +320,8 @@
         }
 
         var initial = 0.35 - lineNumber * lineHeight / 2,
-            x = data.textCenter.x,
-            y = data.textCenter.y;
+            x = Math.floor(data.textCenter.x),
+            y = Math.floor(data.textCenter.y);
 
         text.selectAll("tspan")
             .attr("x", x)
