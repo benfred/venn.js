@@ -81,12 +81,12 @@ Making the diagram interactive is basically the same idea as changing the style:
 ```javascript
 diagram.nodes
     .on("mouseover", function(d, i) {
-        var node = d3.select(this);
+        var node = d3.select(this).transition();
         node.select("circle").style("fill-opacity", .1);
         node.select("text").style("font-size", "36px");
     })
     .on("mouseout", function(d, i) {
-        var node = d3.select(this);
+        var node = d3.select(this).transition();
         node.select("circle").style("fill-opacity", 0);
         node.select("text").style("font-size", "24px");
     });
