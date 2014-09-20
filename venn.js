@@ -106,9 +106,10 @@
                 continue;
             }
 
+            var weight = (current.weight == null) ? 1.0 : current.weight;
             var left = current.sets[0], right = current.sets[1];
-            setOverlaps[left].push ({set:right, size:current.size});
-            setOverlaps[right].push({set:left,  size:current.size});
+            setOverlaps[left].push ({set:right, size:current.size, weight:weight});
+            setOverlaps[right].push({set:left,  size:current.size, weight:weight});
         }
 
         // get list of most overlapped sets
@@ -117,7 +118,7 @@
             if (setOverlaps.hasOwnProperty(set)) {
                 var size = 0;
                 for (i = 0; i < setOverlaps[set].length; ++i) {
-                    size += setOverlaps[set][i].size;
+                    size += setOverlaps[set][i].size * setOverlaps[set][i].weight;
                 }
 
                 mostOverlapped.push({set: set, size:size});
@@ -244,7 +245,8 @@
                 overlap = venn.intersectionArea(getCircles(area.sets));
             }
 
-            output += (overlap - area.size) * (overlap - area.size);
+            var weight = (area.weight == null) ? 1.0 : area.weight;
+            output += weight * (overlap - area.size) * (overlap - area.size);
         }
 
         return output;
