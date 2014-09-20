@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Venn.js Styling examples</title>
+<style>
+body {
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="../venn.js"></script>
+    <script src="./medical.jsonp"></script>
+
+
+    <div id="rings">
+        <script>
+            var diagram = venn.drawD3Diagram(d3.select("#rings"),
+                                             venn.venn(sets, overlaps), 
+                                             500, 500);
+
+            var colours = ['black', 'red', 'blue', 'green']
+            diagram.circles.style("fill-opacity", 0)
+                           .style("stroke-width", 10)
+                           .style("stroke-opacity", .5)
+                            .style("fill", function(d,i) { return colours[i]; })
+                            .style("stroke", function(d,i) { return colours[i]; });
+
+            diagram.text.style("fill", function(d,i) { return colours[i]})
+                        .style("font-size", "24px")
+                        .style("font-weight", "100");
+
+            diagram.nodes
+                .on("mouseover", function(d, i) {
+                    var node = d3.select(this).transition();
+                    node.select("circle").style("fill-opacity", .1);
+                    node.select("text").style("font-weight", "100")
+                                       .style("font-size", "36px");
+                })
+                .on("mouseout", function(d, i) {
+                    var node = d3.select(this).transition();
+                    node.select("circle").style("fill-opacity", 0);
+                    node.select("text").style("font-weight", "100")
+                                       .style("font-size", "24px");
+                });
+        </script>
+    </div>
+</body>
+</html>

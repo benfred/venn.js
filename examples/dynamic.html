@@ -3,6 +3,12 @@
 <head>
     <meta charset="utf-8">
     <title>Dynamic venn.js example</title>
+    <style>
+        body {
+            font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+            font-size: 14px;
+        }
+    </style>
 </head>
 
 <body>
@@ -45,7 +51,7 @@
       </td>
     </tr>
     <tr>
-      <td>|A&#8745CB&#8745C|&nbsp</td>
+      <td>|A&#8745B&#8745C|&nbsp</td>
       <td>
         <input class="input-mini venn_area" id="0,1,2" type="number" value="2">
       </td>
@@ -77,13 +83,13 @@ function getSets() {
 var w = Math.min(450, document.documentElement.clientWidth-30), h = 2*w/3;
 
 // draw the initial set
-var sets = venn.venn(getSets(), getSetIntersections());
-venn.drawD3Diagram(d3.select(".dynamic"), sets, w, h);
+var sets = venn.venn(getSets(), getSetIntersections()),
+    diagram = venn.drawD3Diagram(d3.select(".dynamic"), sets, w, h);
 
 // redraw the sets on any change in input
 d3.selectAll("input").on("change", function() {
     var sets = venn.venn(getSets(), getSetIntersections());
-    venn.updateD3Diagram(d3.select(".dynamic"), sets);
+    venn.updateD3Diagram(diagram, sets);
 });
 
 </script>

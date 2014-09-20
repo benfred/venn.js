@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Venn.js Styling examples</title>
+<style>
+body {
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="../venn.js"></script>
+    <script src="./medical.jsonp"></script>
+
+    <h2>Applying styles to venn diagrams</h2>
+    
+    Here are some examples of applying different styles to the same venn diagram,
+    using a dataset from <a
+    href="http://www.cs.uic.edu/~wilkinson/Publications/venneuler.pdf"> this
+    paper</a> . View the source to get the see the code to generate. </a>
+
+
+    <div id="rings">
+        <script>
+            var diagram = venn.drawD3Diagram(d3.select("#rings"),
+                                             venn.venn(sets, overlaps), 
+                                             500, 500);
+
+            var colours = ['black', 'red', 'blue', 'green']
+            diagram.circles.style("fill-opacity", 0)
+                           .style("stroke-width", 10)
+                           .style("stroke-opacity", .5)
+                            .style("fill", function(d,i) { return colours[i]; })
+                            .style("stroke", function(d,i) { return colours[i]; });
+            diagram.text.style("fill", function(d,i) { return colours[i]})
+                        .style("font-size", "24px")
+                        .style("font-weight", "100");
+                    
+        </script>
+    </div>
+    <div id="inverted">
+        <script>
+            var diagram = venn.drawD3Diagram(d3.select("#inverted"),
+                                             venn.venn(sets, overlaps), 
+                                             500, 500);
+
+            var colours = d3.scale.category10();
+            diagram.circles.style("fill-opacity", .8)
+                           .style("stroke-opacity", 0)
+                            .style("fill", function(d,i) { return colours(i); })
+                            .style("stroke", function(d,i) { return colours(i); });
+            diagram.text.style("fill", "white");
+        </script>
+    </div>
+    <div id="mono">
+        <script>
+            var diagram = venn.drawD3Diagram(d3.select("#mono"),
+                                             venn.venn(sets, overlaps), 
+                                             500, 500);
+
+            diagram.circles.style("fill-opacity", 0)
+                           .style("stroke-width", 2)
+                           .style("stroke-opacity", .5)
+                            .style("stroke", "black");
+            diagram.text.style("fill", "#444");
+        </script>
+    </div>
+    <div id="dropshadow">
+        <link href='http://fonts.googleapis.com/css?family=Shadows+Into+Light' rel='stylesheet' type='text/css'>
+        <script>
+            var diagram = venn.drawD3Diagram(d3.select("#dropshadow"),
+                                             venn.venn(sets, overlaps), 
+                                             500, 500, {'padding' : 15});
+            
+            var colours = d3.scale.category10();
+            diagram.circles.style("fill-opacity", .1)
+                           .style("stroke-width", 5)
+                           .style("stroke-opacity", .8)
+                            .style("fill", function(d,i) { return colours(i); })
+                            .style("stroke", function(d,i) { return colours(i); });
+            diagram.text.style("fill", "#444")
+                        .style("font-family", "Shadows Into Light")//"\"Comic Sans MS\", \"Comic Sans\", cursive;")
+                        .style("font-size", "22px");
+
+          var defs = diagram.svg.append("defs");
+        
+          // from http://stackoverflow.com/questions/12277776/how-to-add-drop-shadow-to-d3-js-pie-or-donut-chart
+          var filter = defs.append("filter")
+              .attr("id", "dropshadow")
+
+          filter.append("feGaussianBlur")
+              .attr("in", "SourceAlpha")
+              .attr("stdDeviation", 4)
+              .attr("result", "blur");
+          filter.append("feOffset")
+              .attr("in", "blur")
+              .attr("dx", 5)
+              .attr("dy", 5)
+              .attr("result", "offsetBlur");
+
+          var feMerge = filter.append("feMerge");
+
+          feMerge.append("feMergeNode")
+              .attr("in", "offsetBlur")
+          feMerge.append("feMergeNode")
+              .attr("in", "SourceGraphic");
+
+          diagram.nodes.attr("filter", "url(#dropshadow)");
+
+        </script>
+    </div>
+    <div id="original">
+        <script>
+            var diagram = venn.drawD3Diagram(d3.select("#original"),
+                                             venn.venn(sets, overlaps), 
+                                             500, 500);
+        </script>
+    </div>
+
+</body>
+</html>
