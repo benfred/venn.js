@@ -621,7 +621,8 @@
             .text(function (d) { return d.label; } )
             .each("end", wrapText)
             .attr("x", function(d) { return Math.floor(d.textCenter.x); })
-            .attr("y", function(d) { return Math.floor(d.textCenter.y); });
+            .attr("y", function(d) { return Math.floor(d.textCenter.y); })
+            .style("display", function(d) { return d.radius > 0 ? "block" : "none"; } );
     };
 
     var SMALL = 1e-10;
