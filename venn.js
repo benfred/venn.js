@@ -584,6 +584,7 @@
                .style("fill-opacity", 0.3)
                .attr("cx", function(d) { return d.x; })
                .attr("cy", function(d) { return d.y; })
+               .attr("id", function(d) { return (d.id || d.label) + "-cir"; })
                .style("fill", function(d, i) { return colours(i); });
 
         var text = nodes.append("text")
@@ -592,7 +593,89 @@
                .attr("y", function(d) { return Math.floor(d.textCenter.y); })
                .attr("text-anchor", "middle")
                .style("fill", function(d, i) { return colours(i); })
+               .attr("id", function(d) { return (d.id || d.label) + "-text"; })
                .call(function (text) { text.each(wrapText); });
+
+        if(parameters.legend) {
+        var sortedSets = [];
+        for (var i = 0; i < dataset.length; ++i) {
+            var set = dataset[i];
+            sortedSets.push({
+                id: set.id,
+                label: set.label + ' (' + set.size + ')',
+                size: set.size
+            });
+        }
+
+        sortedSets.sort(function sortOrder(a, b) {
+            return b.size - a.size;
+        });
+
+        var filterNodes = diagram.append("g").selectAll("text")
+            .data(sortedSets)
+            .enter()
+            .append("g");
+
+        var filters = filterNodes.append("text")
+            .attr("x", function(d) {return 10;})
+            .attr("y", function(d, i) {return 50 + i * 20;})
+            .attr("id", function(d) {return d.id;})
+            .on("mouseover", function(e) {
+                var id = $(this).attr("id");
+                //TODO: Use CSS or other marker
+                if ($("#" + id).attr("text-decoration") == "line-through") {
+                    //Do nothing
+                } else {
+                    for (var i = 0; i < dataset.length; ++i) {
+                        var did = dataset[i].id;
+
+                        if ($("#" + did).attr("text-decoration") == "line-through") {
+                            //Ignore if strike out
+                        } else if (did != id) {
+                            venn.d3.select("#" + did + "-cir").style("fill-opacity", 0.1);
+                            venn.d3.select("#" + did + "-text").style("fill-opacity", 0.1);
+                        } else {
+                            venn.d3.select("#" + did + "-cir").style("fill-opacity", 0.8);
+                            venn.d3.select("#" + did + "-text").style("fill-opacity", 1);
+                        }
+
+                    }
+                }
+            })
+            .on("mouseout", function(e) {
+                var id = $(this).attr("id");
+                if ($("#" + id).attr("text-decoration") == "line-through") {
+                    //Do nothing
+                } else {
+                    for (var i = 0; i < dataset.length; ++i) {
+                        var did = dataset[i].id;
+
+                        if ($("#" + did).attr("text-decoration") == "line-through") {
+                            //Ignore if strike out
+                        } else {
+                            venn.d3.select("#" + did + "-cir").style("fill-opacity", 0.3);
+                            venn.d3.select("#" + did + "-text").style("fill-opacity", 1);
+                        }
+                    }
+                }
+            })
+            .on("click", function(e) {
+                var id = $(this).attr("id");
+                if ($(this).attr("text-decoration") == "line-through") {
+                    $(this).attr("text-decoration", "");
+                    venn.d3.select("#" + id + "-cir").style("fill-opacity", 0.3);
+                    venn.d3.select("#" + id + "-text").style("fill-opacity", 1);
+                } else {
+                    $(this).attr("text-decoration", "line-through");
+                    venn.d3.select("#" + id + "-cir").style("fill-opacity", 0);
+                    venn.d3.select("#" + id + "-text").style("fill-opacity", 0);
+                }
+                //alert('hi');
+            })
+            .text(function(d) {
+                return d.label;
+            });
+        }
 
         return {'svg' : svg,
                 'nodes' : nodes,
