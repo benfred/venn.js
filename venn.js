@@ -96,7 +96,7 @@
         for (var i = 0; i < sets.length; ++i) {
             setOverlaps[i] = [];
             sets[i].radius = Math.sqrt(sets[i].size / Math.PI);
-            sets[i].x = sets[i].y = 0;
+            sets[i].x = sets[i].y = 1e10;
         }
 
         // map each set to a list of all the other sets that overlap it
@@ -108,6 +108,14 @@
 
             var weight = (current.weight == null) ? 1.0 : current.weight;
             var left = current.sets[0], right = current.sets[1];
+
+
+            // completely overlapped circles shouldn't be positioned early here
+            if (current.size + SMALL >= Math.min(sets[left].size,
+                                                 sets[right].size)) {
+                weight = 0;
+            }
+
             setOverlaps[left].push ({set:right, size:current.size, weight:weight});
             setOverlaps[right].push({set:left,  size:current.size, weight:weight});
         }
