@@ -50,6 +50,21 @@
             circles = venn.greedyLayout(sets, overlaps);
             loss = venn.lossFunction(circles, overlaps);
             nearlyEqual(loss, 0);
+
+ 
+            // one small circle completely overlapped in the intersection
+            // area of two larger circles
+            sets= [{"size":1.7288584050841396},
+                   {"size":0.040875831658950056},
+                   {"size":2.587146019782323}];
+
+            overlaps =  [{"sets":[0,1], "size":0.040875831658950056},
+                         {"sets":[0,2], "size":0.5114617575187569},
+                         {"sets":[1,2], "size":0.040875831658950056}];
+
+            circles = venn.greedyLayout(sets, overlaps);
+            loss = venn.lossFunction(circles, overlaps);
+            nearlyEqual(loss, 0);
         });
 
 
