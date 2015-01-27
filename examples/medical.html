@@ -12,7 +12,7 @@ body {
 </head>
 
 <body>
-    <div class="medical"></div>
+    <div id="venn"></div>
 Dataset from <a href="http://www.cs.uic.edu/~wilkinson/Publications/venneuler.pdf">figure 8 of this paper</a>
 
 </body>
@@ -21,8 +21,11 @@ Dataset from <a href="http://www.cs.uic.edu/~wilkinson/Publications/venneuler.pd
 <script src="../venn.js"></script>
 <script src="medical.jsonp"></script>
 <script>
-venn.drawD3Diagram(d3.select(".medical"), 
-                   venn.venn(sets, overlaps), 
-                   450, 450);
+var chart = venn.VennDiagram()
+                 .width(600)
+                 .height(400);
+
+d3.select("#venn").datum(sets).call(chart);
+
 </script>
 </html>
