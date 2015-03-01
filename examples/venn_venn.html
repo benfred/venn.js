@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Venn diagram of Venn diagrams</title>
+<style>
+body {
+font-size : 16px;
+font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+</style>
+</head>
+
+<body>
+    <div id="venn"></div>
+</body>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="../venn.js"></script>
+<script>
+var sets = [
+            {sets:["Information"], size: 12}, 
+            {sets:["Things That Overlap"], size: 12},
+            {sets:["Circles"], size: 12},       
+            {sets: ["Information", "Things That Overlap"], size: 4, label: "Redundancy"},
+            {sets: ["Information", "Circles"], size: 4, label: "Pie Charts", },
+            {sets: ["Things That Overlap", "Circles"], size: 4, label: "Eclipses"},
+            {sets: ["Information", "Things That Overlap", "Circles"], size: 2, label: "Venn Diagrams"}
+    ];
+
+var chart = venn.VennDiagram()
+    .width(640)
+    .height(640);
+
+var div = d3.select("#venn").datum(sets).call(chart);
+div.selectAll("text").style("fill", "white");
+div.selectAll(".venn-circle path").style("fill-opacity", .6);
+</script>
+</html>

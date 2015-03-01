@@ -17,80 +17,87 @@
     <tr>
       <td>|A|</td>
       <td>
-        <input class="input-mini venn_set" id="a" type="number" value="16">
+        <input class="input-mini venn_area" id="A" type="number" value="16">
       </td>
     </tr>
     <tr>
       <td>|B|</td>
       <td>
-        <input class="input-mini venn_set" id="b" type="number" value="16">
+        <input class="input-mini venn_area" id="B" type="number" value="16">
       </td>
     </tr>
     <tr>
       <td>|C|</td>
       <td>
-        <input class="input-mini venn_set" id="c" type="number" value="12">
+        <input class="input-mini venn_area" id="C" type="number" value="12">
       </td>
     </tr>
     <tr>
       <td>|A&#8745B|</td>
       <td>
-        <input class="input-mini venn_area" id="0,1" type="number" value="4">
+        <input class="input-mini venn_area" id="A,B" type="number" value="4">
       </td>
     </tr>
     <tr>
       <td>|A&#8745C|</td>
       <td>
-        <input class="input-mini venn_area" id="0,2" type="number" value="4">
+        <input class="input-mini venn_area" id="A,C" type="number" value="4">
       </td>
     </tr>
     <tr>
       <td>|B&#8745C|</td>
       <td>
-        <input class="input-mini venn_area" id="1,2" type="number" value="3">
+        <input class="input-mini venn_area" id="B,C" type="number" value="3">
       </td>
     </tr>
     <tr>
       <td>|A&#8745B&#8745C|&nbsp</td>
       <td>
-        <input class="input-mini venn_area" id="0,1,2" type="number" value="2">
+        <input class="input-mini venn_area" id="A,B,C" type="number" value="2">
       </td>
     </tr>
     </table>
 </div>
-<div class="dynamic"></div>
+<div id="venn"></div>
 <div style="clear: both;"></div>
 
 </body>
-<script src="http://d3js.org/d3.v2.min.js"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="../venn.js"></script>
 <script>
 function getSetIntersections() {
     areas = d3.selectAll(".venn_area")[0].map(
         function (element) { 
-            return { sets: element.id.split(",").map(function(value) { return parseInt(value);}), 
-                    size: parseFloat(element.value)};} );
+            return { sets: element.id.split(","), 
+                     size: parseFloat(element.value)};} );
     return areas;
 }
 
-function getSets() {
-    var sets=[{"label": "A"}, {"label":"B"}, {"label": "C"}], areas = [];
-    d3.selectAll(".venn_set")[0].map(
-        function(element, i) { sets[i].size = parseFloat(element.value); });
-    return sets;
-}
-
-var w = Math.min(450, document.documentElement.clientWidth-30), h = 2*w/3;
 
 // draw the initial set
-var sets = venn.venn(getSets(), getSetIntersections()),
-    diagram = venn.drawD3Diagram(d3.select(".dynamic"), sets, w, h);
+var chart = venn.VennDiagram()
+                 .width(600)
+                 .height(500);
+
+d3.select("#venn").datum(getSetIntersections()).call(chart);
 
 // redraw the sets on any change in input
 d3.selectAll("input").on("change", function() {
-    var sets = venn.venn(getSets(), getSetIntersections());
-    venn.updateD3Diagram(diagram, sets);
+    d3.select("#venn").datum(getSetIntersections()).call(chart);
 });
+
+// tweak style
+var colours = ['black', 'red', 'blue'];
+d3.selectAll("#venn .venn-circle path")
+    .style("fill-opacity", 0)
+    .style("stroke-width", 10)
+    .style("stroke-opacity", .5)
+    .style("stroke", function(d,i) { return colours[i]; });
+
+d3.selectAll("#venn .venn-circle text")
+    .style("fill", function(d,i) { return colours[i]})
+    .style("font-size", "32px")
+    .style("font-weight", "100");
 
 </script>
 </html>

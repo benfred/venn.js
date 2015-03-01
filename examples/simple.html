@@ -12,20 +12,18 @@ body {
 </head>
 
 <body>
-    <div class="simple_example"></div>
+    <div id="venn"></div>
 </body>
 
-<script src="http://d3js.org/d3.v2.min.js"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="../venn.js"></script>
 <script>
 // define sets and set set intersections
-var sets = [{label: "A", size: 10}, {label: "B", size: 10}],
-    overlaps = [{sets: [0,1], size: 2}];
+var sets = [ {sets: ['A'], size: 12}, 
+             {sets: ['B'], size: 12},
+             {sets: ['A','B'], size: 2}];
 
-// get positions for each set
-sets = venn.venn(sets, overlaps);
-
-// draw the diagram in the 'simple_example' div
-venn.drawD3Diagram(d3.select(".simple_example"), sets, 300, 300);
+var chart = venn.VennDiagram();
+d3.select("#venn").datum(sets).call(chart);
 </script>
 </html>
