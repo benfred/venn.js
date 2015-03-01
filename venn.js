@@ -4,7 +4,7 @@
             height = 350,
             padding = 15,
             duration = 1000,
-            fontSize = "12px",
+            fontSize = null,
             colours = d3.scale.category10(),
             layoutFunction = venn.venn;
 
@@ -72,10 +72,8 @@
                     .style("fill", function(d) { return colours(label(d)); })
                     .style("fill-opacity", ".25");
 
-                enter.append("text")
-                    .style("font-size", "0px")
-                    .style("fill", function(d) { return d.sets.length == 1 ?
-                    colours(label(d)) : "#444"; })
+                var enterText = enter.append("text")
+                    .style("fill", function(d) { return d.sets.length == 1 ? colours(label(d)) : "#444"; })
                     .text(function (d) { return label(d); } )
                     .attr("text-anchor", "middle")
                     .attr("dy", ".35em")
@@ -87,8 +85,7 @@
                 update.select("path")
                     .attrTween("d", pathTween);
 
-                update.select("text")
-                    .style("font-size", fontSize)
+                var updateText = update.select("text")
                     .text(function (d) { return label(d); } )
                     .each("end", venn.wrapText(circles, label))
                     .attr("x", function(d) {
@@ -97,6 +94,13 @@
                     .attr("y", function(d) {
                         return Math.floor(textCentres[d.sets].y);
                     });
+
+                // if we've been passed a fontSize explicitly, use it to
+                // transition
+                if (fontSize !== null) {
+                    enterText.style("font-size", "0px");
+                    updateText.style("font-size", fontSize);
+                }
 
                 // remove old
                 var remove = nodes.exit().transition('venn').duration(duration).remove();
@@ -147,6 +151,12 @@
         chart.fontSize = function(_) {
             if (!arguments.length) return fontSize;
             fontSize = _;
+            return chart;
+        };
+
+        chart.duration = function(_) {
+            if (!arguments.length) return duration;
+            duration = _;
             return chart;
         };
 
@@ -271,14 +281,11 @@
                 setOverlaps[set] = [];
             }
         }
+        areas = areas.filter(function(a) { return a.sets.length == 2; });
 
         // map each set to a list of all the other sets that overlap it
         for (i = 0; i < areas.length; ++i) {
             var current = areas[i];
-            if (current.sets.length !== 2) {
-                continue;
-            }
-
             var weight = current.hasOwnProperty('weight') ? current.weight : 1.0;
             var left = current.sets[0], right = current.sets[1];
 
@@ -430,7 +437,9 @@
 
         for (var i = 0; i < overlaps.length; ++i) {
             var area = overlaps[i], overlap;
-            if (area.sets.length == 2) {
+            if (area.sets.length == 1) {
+                continue;
+            } else if (area.sets.length == 2) {
                 var left = sets[area.sets[0]],
                     right = sets[area.sets[1]];
                 overlap = venn.circleOverlap(left.radius, right.radius,
@@ -777,24 +786,62 @@
             }
         }
 
+        function getCircles(area) {
+            return area.map(function(a) { return circles[a]; });
+        }
+
         var ret = {};
         for (i = 0; i < areas.length; ++i) {
             var area = areas[i].sets;
             if (points.hasOwnProperty(area)) {
                 ret[area] = venn.getCenter(points[area]);
-
+                // todo: if the point isn't in the area (could not even be a
+                // circle), find the nearest point that is in the region,
+                // extend past that
             } else if (area.length == 1) {
                 // small/missing intersection area. default to circle centre
                 var circle = circles[area[0]];
                 ret[area] = {'x': circle.x, 'y': circle.y };
 
             } else {
-                // TODO: handle this case
-                ret[area] = {'x' : 0, 'y' : 0};
+                var areaStats = {};
+                venn.intersectionArea(getCircles(area), areaStats);
+
+                if (areaStats.arcs.length === 0) {
+                    if (areas[i].size > 0) {
+                        console.log("WARNING: area " + JSON.stringify(area) + " isn't represented on diagram" );
+                    }
+                    ret[area] = {'x' : 0, 'y' : -1000};
+                } else {
+                    // take average of all the points in the outer perimiter
+                    ret[area] = venn.getCenter(areaStats.arcs.map(function (a) { return a.p1; }));
+                }
             }
         }
         return ret;
     }
+
+    // sorts all areas in the venn diagram, so that
+    // a particular area is on top (relativeTo) - and
+    // all other areas are so that the smallest areas are on top
+    venn.sortAreas = function(div, relativeTo) {
+        // need to sort div's so that Z order is correct
+        div.selectAll("g").sort(function (a, b) {
+            // highest order set intersections first
+            if (a.sets.length != b.sets.length) {
+                return a.sets.length - b.sets.length;
+            }
+
+            // current element is highest inside its order
+            if ((a == relativeTo) || (b == relativeTo)) {
+                return (a == relativeTo) ? 1 : -1;
+            }
+
+            // finally by size
+            return b.size - a.size;
+        });
+    }
+
 
     var SMALL = 1e-10;
 

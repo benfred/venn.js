@@ -52,34 +52,25 @@ div.selectAll("path")
     .style("stroke-width", 0)
 
 div.selectAll("g")
-    .on("mousemove", function() {
-        tooltip.style("left", (d3.event.pageX) + "px")
-               .style("top", (d3.event.pageY - 28) + "px");
-    })
     .on("mouseover", function(d, i) {
-        // need to sort div's so that Z order is correct
-        div.selectAll("g").sort(function (a, b) {
-            // highest order set intersections first
-            if (a.sets.length != b.sets.length) {
-                return a.sets.length - b.sets.length;
-            }
-            
-            // current element is highest inside its order
-            if ((a == d) || (b == d)) {
-                return (a == d) ? 1 : -1;
-            }
-            
-            // finally by size
-            return b.size - a.size;
-        });
+        // sort all the areas relative to the current item
+        venn.sortAreas(div, d);
+
+        // Display a tooltip with the current size
         tooltip.transition().duration(400).style("opacity", .9);
         tooltip.text(d.size + " users");
-
+        
+        // highlight the current path
         var selection = d3.select(this).transition("tooltip").duration(400);
         selection.select("path")
             .style("stroke-width", 3)
             .style("fill-opacity", d.sets.length == 1 ? .4 : .1)
             .style("stroke-opacity", 1);
+    })
+
+    .on("mousemove", function() {
+        tooltip.style("left", (d3.event.pageX) + "px")
+               .style("top", (d3.event.pageY - 28) + "px");
     })
     
     .on("mouseout", function(d, i) {

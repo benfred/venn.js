@@ -5,7 +5,7 @@ A javascript library for laying out area proportional venn and euler diagrams.
 
 Details of how this library works can be found on the [blog
 post](http://www.benfrederickson.com/venn-diagrams-with-d3.js/)
-I wrote about this. There are also more examples on that page.
+I wrote about this.
 
 #### Usage
 
@@ -15,9 +15,10 @@ diagrams.
 ##### Simple layout
 
 To lay out a simple diagram, just define the sets and their sizes along with the sizes 
-of all the set intersection.
+of all the set intersections.
 
-The VennDiagram object will calculate a layout that is proportional to the input sizes, and display it in the 'venn' div when called:
+The VennDiagram object will calculate a layout that is proportional to the
+input sizes, and display it in the appropiate selection when called:
 
 ```javascript
 var sets = [ {sets: ['A'], size: 12}, 
@@ -27,11 +28,13 @@ var sets = [ {sets: ['A'], size: 12},
 var chart = venn.VennDiagram()
 d3.select("#venn").datum(sets).call(chart);
 ```
+
 [View this example ](http://benfred.github.io/venn.js/examples/simple.html)
 
 ##### Changing the Style
 
-The style of the Venn Diagram can be customized by using D3 after the diagram has been drawn. For isntance to draw a Venn Diagram with white text and a darker fill:
+The style of the Venn Diagram can be customized by using D3 after the diagram
+has been drawn. For instance to draw a Venn Diagram with white text and a darker fill:
 
 ```javascript
 var chart = venn.VennDiagram()
@@ -49,7 +52,7 @@ d3.selectAll("#inverted text").style("fill", "white");
 ##### Dynamic layout
 
 To have a layout that reacts to a change in input, all that you need to do is
-update the dataset and call the cahrt again:
+update the dataset and call the chart again:
 
 ```javascript
 // draw the initial diagram
@@ -91,42 +94,36 @@ Another common case is adding a tooltip when hovering over the elements in the d
 tricky thing here is maintaining the correct Z-order so that the smallest intersection areas
 are on top, while still making the area that is being hovered over appear on top of the others:
 
-
 ```javascript
+// draw venn diagram
+var div = d3.select("#venn")
+div.datum(sets).call(venn.VennDiagram());
+
 // add a tooltip
 var tooltip = d3.select("body").append("div")
     .attr("class", "venntooltip");
 
 // add listeners to all the groups to display tooltip on mousover
-div.selectAll("#venn g")
-    .on("mousemove", function() {
-        tooltip.style("left", (d3.event.pageX) + "px")
-               .style("top", (d3.event.pageY - 28) + "px");
-    })
+div.selectAll("g")
     .on("mouseover", function(d, i) {
-        // need to sort div's so that Z order is correct
-        div.selectAll("g").sort(function (a, b) {
-            // highest order set intersections first
-            if (a.sets.length != b.sets.length) {
-                return a.sets.length - b.sets.length;
-            }
-            
-            // current element is highest inside its order
-            if ((a == d) || (b == d)) {
-                return (a == d) ? 1 : -1;
-            }
-            
-            // finally by size
-            return b.size - a.size;
-        });
+        // sort all the areas relative to the current item
+        venn.sortAreas(div, d);
+
+        // Display a tooltip with the current size
         tooltip.transition().duration(400).style("opacity", .9);
         tooltip.text(d.size + " users");
-
+        
+        // highlight the current path
         var selection = d3.select(this).transition("tooltip").duration(400);
         selection.select("path")
             .style("stroke-width", 3)
             .style("fill-opacity", d.sets.length == 1 ? .4 : .1)
             .style("stroke-opacity", 1);
+    })
+
+    .on("mousemove", function() {
+        tooltip.style("left", (d3.event.pageX) + "px")
+               .style("top", (d3.event.pageY - 28) + "px");
     })
     
     .on("mouseout", function(d, i) {
