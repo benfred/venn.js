@@ -62,13 +62,13 @@
 <div style="clear: both;"></div>
 
 </body>
-<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 <script src="../venn.js"></script>
 <script>
 function getSetIntersections() {
     areas = d3.selectAll(".venn_area")[0].map(
-        function (element) { 
-            return { sets: element.id.split(","), 
+        function (element) {
+            return { sets: element.id.split(","),
                      size: parseFloat(element.value)};} );
     return areas;
 }
