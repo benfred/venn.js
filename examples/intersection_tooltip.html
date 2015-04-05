@@ -30,7 +30,7 @@ body {
 }
 </style>
 
-<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 <script src="../venn.js"></script>
 <script src="./lastfm.jsonp"></script>
 
@@ -59,7 +59,7 @@ div.selectAll("g")
         // Display a tooltip with the current size
         tooltip.transition().duration(400).style("opacity", .9);
         tooltip.text(d.size + " users");
-        
+
         // highlight the current path
         var selection = d3.select(this).transition("tooltip").duration(400);
         selection.select("path")
@@ -72,7 +72,7 @@ div.selectAll("g")
         tooltip.style("left", (d3.event.pageX) + "px")
                .style("top", (d3.event.pageY - 28) + "px");
     })
-    
+
     .on("mouseout", function(d, i) {
         tooltip.transition().duration(400).style("opacity", 0);
         var selection = d3.select(this).transition("tooltip").duration(400);

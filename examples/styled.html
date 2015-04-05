@@ -12,12 +12,12 @@ body {
 </head>
 
 <body>
-    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
     <script src="../venn.js"></script>
     <script src="./medical.jsonp"></script>
 
     <h2>Applying styles to venn diagrams</h2>
-    
+
     Here are some examples of applying different styles to the same venn diagram,
     using a dataset from <a
     href="http://www.cs.uic.edu/~wilkinson/Publications/venneuler.pdf"> this
@@ -44,7 +44,7 @@ body {
                 .style("fill", function(d,i) { return colours[i]})
                 .style("font-size", "24px")
                 .style("font-weight", "100");
-                    
+
         </script>
     </div>
     <div id="inverted">
@@ -54,7 +54,7 @@ body {
                              .height(500);
 
             d3.select("#inverted").datum(sets).call(chart)
-            
+
             d3.selectAll("#inverted .venn-circle path")
                 .style("fill-opacity", .8);
 
@@ -101,7 +101,7 @@ body {
                 .style("font-size", "22px");
 
           var defs = d3.select("#dropshadow svg").append("defs");
-        
+
           // from http://stackoverflow.com/questions/12277776/how-to-add-drop-shadow-to-d3-js-pie-or-donut-chart
           var filter = defs.append("filter")
               .attr("id", "dropshadow")
@@ -122,7 +122,7 @@ body {
               .attr("in", "offsetBlur")
           feMerge.append("feMergeNode")
               .attr("in", "SourceGraphic");
-            
+
           areas.attr("filter", "url(#dropshadow)");
         </script>
     </div>
