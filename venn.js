@@ -1,3 +1,5 @@
+var venn = venn || {};
+
  (function(venn) {
     venn.VennDiagram = function() {
         var width = 600,
@@ -168,7 +170,188 @@
 
         return chart;
     };
+    // sometimes text doesn't fit inside the circle, if thats the case lets wrap
+    // the text here such that it fits
+    // todo: looks like this might be merged into d3 (
+    // https://github.com/mbostock/d3/issues/1642),
+    // also worth checking out is
+    // http://engineering.findthebest.com/wrapping-axis-labels-in-d3-js/
+    // this seems to be one of those things that should be easy but isn't
+    venn.wrapText = function(circles, labeller) {
+        return function() {
+            var text = d3.select(this),
+                data = text.datum(),
+                width = circles[data.sets[0]].radius || 50,
+                label = labeller(data) || '';
 
+                var words = label.split(/\s+/).reverse(),
+                maxLines = 3,
+                minChars = (label.length + words.length) / maxLines,
+                word = words.pop(),
+                line = [word],
+                joined,
+                lineNumber = 0,
+                lineHeight = 1.1, // ems
+                tspan = text.text(null).append("tspan").text(word);
+
+            while (true) {
+                word = words.pop();
+                if (!word) break;
+                line.push(word);
+                joined = line.join(" ");
+                tspan.text(joined);
+                if (joined.length > minChars && tspan.node().getComputedTextLength() > width) {
+                    line.pop();
+                    tspan.text(line.join(" "));
+                    line = [word];
+                    tspan = text.append("tspan").text(word);
+                    lineNumber++;
+                }
+            }
+
+            var initial = 0.35 - lineNumber * lineHeight / 2,
+                x = text.attr("x"),
+                y = text.attr("y");
+
+            text.selectAll("tspan")
+                .attr("x", x)
+                .attr("y", y)
+                .attr("dy", function(d, i) {
+                     return (initial + i * lineHeight) + "em";
+                });
+        };
+    };
+
+    function computeTextCentres(circles, areas, width, height) {
+        // basically just finding the center point of each region by sampling
+        // points in a grid.
+        var points = {};
+
+        var samples = 32;
+        for (var i = 0; i < samples; ++i) {
+            var x = i * width / samples;
+            for (var j = 0; j < samples; ++j) {
+                var y = j * height / samples;
+                var point = {'x' : x, 'y' : y};
+
+                var contained = [];
+                for (var k in circles) {
+                    if (venn.distance(point, circles[k]) <= circles[k].radius) {
+                        contained.push(k);
+                    }
+                }
+                if (!contained.length) {
+                    continue;
+                }
+
+                if (!(contained in points)) {
+                    points[contained] = [];
+                }
+                points[contained].push(point);
+            }
+        }
+
+        function getCircles(area) {
+            return area.map(function(a) { return circles[a]; });
+        }
+
+        var ret = {};
+        for (i = 0; i < areas.length; ++i) {
+            var area = areas[i].sets;
+            if (points.hasOwnProperty(area)) {
+                ret[area] = venn.getCenter(points[area]);
+                // todo: if the point isn't in the area (could not even be a
+                // circle), find the nearest point that is in the region,
+                // extend past that
+            } else if (area.length == 1) {
+                // small/missing intersection area. default to circle centre
+                var circle = circles[area[0]];
+                ret[area] = {'x': circle.x, 'y': circle.y };
+
+            } else {
+                var areaStats = {};
+                venn.intersectionArea(getCircles(area), areaStats);
+
+                if (areaStats.arcs.length === 0) {
+                    if (areas[i].size > 0) {
+                        console.log("WARNING: area " + JSON.stringify(area) + " isn't represented on diagram" );
+                    }
+                    ret[area] = {'x' : 0, 'y' : -1000};
+                } else {
+                    // take average of all the points in the outer perimiter
+                    ret[area] = venn.getCenter(areaStats.arcs.map(function (a) { return a.p1; }));
+                }
+            }
+        }
+        return ret;
+    }
+
+    // sorts all areas in the venn diagram, so that
+    // a particular area is on top (relativeTo) - and
+    // all other areas are so that the smallest areas are on top
+    venn.sortAreas = function(div, relativeTo) {
+        // need to sort div's so that Z order is correct
+        div.selectAll("g").sort(function (a, b) {
+            // highest order set intersections first
+            if (a.sets.length != b.sets.length) {
+                return a.sets.length - b.sets.length;
+            }
+
+            // current element is highest inside its order
+            if ((a == relativeTo) || (b == relativeTo)) {
+                return (a == relativeTo) ? 1 : -1;
+            }
+
+            // finally by size
+            return b.size - a.size;
+        });
+    };
+
+    venn.circlePath = function(x, y, r) {
+        var ret = [];
+        ret.push("\nM", x, y);
+        ret.push("\nm", -r, 0);
+        ret.push("\na", r, r, 0, 1, 0, r *2, 0);
+        ret.push("\na", r, r, 0, 1, 0,-r *2, 0);
+        return ret.join(" ");
+    };
+
+    // inverse of the circlePath function, returns a circle object from an svg path
+    venn.circleFromPath = function(path) {
+        var tokens = path.split(' ');
+        return {'x' : parseFloat(tokens[1]),
+                'y' : parseFloat(tokens[2]),
+                'radius' : -parseFloat(tokens[4])
+                };
+    };
+
+    /** returns a svg path of the intersection area of a bunch of circles */
+    venn.intersectionAreaPath = function(circles) {
+        var stats = {};
+        venn.intersectionArea(circles, stats);
+        var arcs = stats.arcs;
+
+        if (arcs.length === 0) {
+            return "M 0 0";
+
+        } else if (arcs.length == 1) {
+            var circle = arcs[0].circle;
+            return venn.circlePath(circle.x, circle.y, circle.radius);
+
+        } else {
+            // draw path around arcs
+            var ret = ["\nM", arcs[0].p2.x, arcs[0].p2.y];
+            for (var i = 0; i < arcs.length; ++i) {
+                var arc = arcs[i], r = arc.circle.radius, wide = arc.width > r;
+                ret.push("\nA", r, r, 0, wide ? 1 : 0, 1,
+                         arc.p1.x, arc.p1.y);
+            }
+            return ret.join(" ");
+        }
+    };
+})(venn);
+
+(function(venn) {
     /** given a list of set objects, and their corresponding overlaps.
     updates the (x, y, radius) attribute on each set such that their positions
     roughly correspond to the desired overlaps */
@@ -221,6 +404,8 @@
 
         return circles;
     };
+    
+    var SMALL = 1e-10;
 
     /** Returns the distance necessary for two circles of radius r1 + r2 to
     have the overlap area 'overlap' */
@@ -500,57 +685,9 @@
 
         return scaled;
     };
+})(venn);
 
-    // sometimes text doesn't fit inside the circle, if thats the case lets wrap
-    // the text here such that it fits
-    // todo: looks like this might be merged into d3 (
-    // https://github.com/mbostock/d3/issues/1642),
-    // also worth checking out is
-    // http://engineering.findthebest.com/wrapping-axis-labels-in-d3-js/
-    // this seems to be one of those things that should be easy but isn't
-    venn.wrapText = function(circles, labeller) {
-        return function() {
-            var text = d3.select(this),
-                data = text.datum(),
-                width = circles[data.sets[0]].radius || 50,
-                label = labeller(data) || '';
-
-                var words = label.split(/\s+/).reverse(),
-                maxLines = 3,
-                minChars = (label.length + words.length) / maxLines,
-                word = words.pop(),
-                line = [word],
-                joined,
-                lineNumber = 0,
-                lineHeight = 1.1, // ems
-                tspan = text.text(null).append("tspan").text(word);
-
-            while (word = words.pop()) {
-                line.push(word);
-                joined = line.join(" ");
-                tspan.text(joined);
-                if (joined.length > minChars && tspan.node().getComputedTextLength() > width) {
-                    line.pop();
-                    tspan.text(line.join(" "));
-                    line = [word];
-                    tspan = text.append("tspan").text(word);
-                    lineNumber++;
-                }
-            }
-
-            var initial = 0.35 - lineNumber * lineHeight / 2,
-                x = text.attr("x"),
-                y = text.attr("y");
-
-            text.selectAll("tspan")
-                .attr("x", x)
-                .attr("y", y)
-                .attr("dy", function(d, i) {
-                     return (initial + i * lineHeight) + "em";
-                });
-        };
-    };
-
+ (function(venn) {
     /** finds the zeros of a function, given two starting points (which must
      * have opposite signs */
     venn.bisect = function(f, a, b, parameters) {
@@ -589,7 +726,6 @@
             ret[j] = w1 * v1[j] + w2 * v2[j];
         }
     }
-
 
     /** minimizes a function using the downhill simplex method */
     venn.fmin = function(f, x0, parameters) {
@@ -713,136 +849,9 @@
         return {f : simplex[0].fx,
                 solution : simplex[0]};
     };
+})(venn);
 
-    venn.circlePath = function(x, y, r) {
-        var ret = [];
-        ret.push("\nM", x, y);
-        ret.push("\nm", -r, 0);
-        ret.push("\na", r, r, 0, 1, 0, r *2, 0);
-        ret.push("\na", r, r, 0, 1, 0,-r *2, 0);
-        return ret.join(" ");
-    };
-
-    // inverse of the circlePath function, returns a circle object from an svg path
-    venn.circleFromPath = function(path) {
-        var tokens = path.split(' ');
-        return {'x' : parseFloat(tokens[1]),
-                'y' : parseFloat(tokens[2]),
-                'radius' : -parseFloat(tokens[4])
-                };
-    };
-
-    /** returns a svg path of the intersection area of a bunch of circles */
-    venn.intersectionAreaPath = function(circles) {
-        var stats = {};
-        venn.intersectionArea(circles, stats);
-        var arcs = stats.arcs;
-
-        if (arcs.length === 0) {
-            return "M 0 0";
-
-        } else if (arcs.length == 1) {
-            var circle = arcs[0].circle;
-            return venn.circlePath(circle.x, circle.y, circle.radius);
-
-        } else {
-            // draw path around arcs
-            var ret = ["\nM", arcs[0].p2.x, arcs[0].p2.y];
-            for (var i = 0; i < arcs.length; ++i) {
-                var arc = arcs[i], r = arc.circle.radius, wide = arc.width > r;
-                ret.push("\nA", r, r, 0, wide ? 1 : 0, 1,
-                         arc.p1.x, arc.p1.y);
-            }
-            return ret.join(" ");
-        }
-    };
-
-    function computeTextCentres(circles, areas, width, height) {
-        // basically just finding the center point of each region by sampling
-        // points in a grid.
-        var points = {};
-
-        var samples = 32;
-        for (var i = 0; i < samples; ++i) {
-            var x = i * width / samples;
-            for (var j = 0; j < samples; ++j) {
-                var y = j * height / samples;
-                var point = {'x' : x, 'y' : y};
-
-                var contained = [];
-                for (var k in circles) {
-                    if (venn.distance(point, circles[k]) <= circles[k].radius) {
-                        contained.push(k);
-                    }
-                }
-                if (!contained.length) {
-                    continue;
-                }
-
-                if (!(contained in points)) {
-                    points[contained] = [];
-                }
-                points[contained].push(point);
-            }
-        }
-
-        function getCircles(area) {
-            return area.map(function(a) { return circles[a]; });
-        }
-
-        var ret = {};
-        for (i = 0; i < areas.length; ++i) {
-            var area = areas[i].sets;
-            if (points.hasOwnProperty(area)) {
-                ret[area] = venn.getCenter(points[area]);
-                // todo: if the point isn't in the area (could not even be a
-                // circle), find the nearest point that is in the region,
-                // extend past that
-            } else if (area.length == 1) {
-                // small/missing intersection area. default to circle centre
-                var circle = circles[area[0]];
-                ret[area] = {'x': circle.x, 'y': circle.y };
-
-            } else {
-                var areaStats = {};
-                venn.intersectionArea(getCircles(area), areaStats);
-
-                if (areaStats.arcs.length === 0) {
-                    if (areas[i].size > 0) {
-                        console.log("WARNING: area " + JSON.stringify(area) + " isn't represented on diagram" );
-                    }
-                    ret[area] = {'x' : 0, 'y' : -1000};
-                } else {
-                    // take average of all the points in the outer perimiter
-                    ret[area] = venn.getCenter(areaStats.arcs.map(function (a) { return a.p1; }));
-                }
-            }
-        }
-        return ret;
-    }
-
-    // sorts all areas in the venn diagram, so that
-    // a particular area is on top (relativeTo) - and
-    // all other areas are so that the smallest areas are on top
-    venn.sortAreas = function(div, relativeTo) {
-        // need to sort div's so that Z order is correct
-        div.selectAll("g").sort(function (a, b) {
-            // highest order set intersections first
-            if (a.sets.length != b.sets.length) {
-                return a.sets.length - b.sets.length;
-            }
-
-            // current element is highest inside its order
-            if ((a == relativeTo) || (b == relativeTo)) {
-                return (a == relativeTo) ? 1 : -1;
-            }
-
-            // finally by size
-            return b.size - a.size;
-        });
-    }
-
-
+ (function(venn) {
     var SMALL = 1e-10;
 
     /** Returns the intersection area of a bunch of circles (where each circle
@@ -1064,4 +1073,12 @@
         center.y /= points.length;
         return center;
     };
-}(window.venn = window.venn || {}));
+})(venn);
+
+(function(lib) {
+    if (typeof module === "undefined" || typeof module.exports === "undefined") {
+        window.venn = lib;
+    } else {
+        module.exports = lib;
+    } 
+})(venn);

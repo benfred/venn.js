@@ -160,6 +160,16 @@ var chart = venn.VennDiagram()
 
 d3.select("#venn").datum(sets).call(chart);
 ```
+
 [View this example](http://benfred.github.io/venn.js/examples/mds.html)
+
+#### Building
+
+To build venn.js and venn.min.js from the files in src/ - you should first
+install [grunt](http://gruntjs.com/) by  following [these instructions](http://gruntjs.com/getting-started).
+
+Once you have grunt installed, running 'npm install' in the source directory will download all the
+dev dependencies, and then running 'grunt' will concat all the source files,
+minify them, and run jshint and the unittests.
 
 Released under the MIT License.
