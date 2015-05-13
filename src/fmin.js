@@ -1,4 +1,5 @@
- (function(venn) {
+(function(venn) {
+    "use strict";
     /** finds the zeros of a function, given two starting points (which must
      * have opposite signs */
     venn.bisect = function(f, a, b, parameters) {

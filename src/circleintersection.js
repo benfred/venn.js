@@ -1,4 +1,5 @@
- (function(venn) {
+(function(venn) {
+    "use strict";
     var SMALL = 1e-10;
 
     /** Returns the intersection area of a bunch of circles (where each circle

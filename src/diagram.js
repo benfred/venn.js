@@ -1,4 +1,5 @@
- (function(venn) {
+(function(venn) {
+    "use strict";
     venn.VennDiagram = function() {
         var width = 600,
             height = 350,
@@ -12,7 +13,7 @@
             selection.each(function(data) {
                 // calculate circle position, scale to fit
                 var circles = venn.scaleSolution(layoutFunction(data), width, height, padding);
-                var textCentres = computeTextCentres(circles, data, width, height);
+                var textCentres = computeTextCentres(circles, data);
 
                 // draw out a svg
                 var svg = d3.select(this).selectAll("svg").data([circles]);
@@ -220,69 +221,118 @@
         };
     };
 
-    function computeTextCentres(circles, areas, width, height) {
-        // basically just finding the center point of each region by sampling
-        // points in a grid.
-        var points = {};
-
-        var samples = 32;
-        for (var i = 0; i < samples; ++i) {
-            var x = i * width / samples;
-            for (var j = 0; j < samples; ++j) {
-                var y = j * height / samples;
-                var point = {'x' : x, 'y' : y};
-
-                var contained = [];
-                for (var k in circles) {
-                    if (venn.distance(point, circles[k]) <= circles[k].radius) {
-                        contained.push(k);
-                    }
-                }
-                if (!contained.length) {
-                    continue;
-                }
-
-                if (!(contained in points)) {
-                    points[contained] = [];
-                }
-                points[contained].push(point);
+    function circleMargin(current, interior, exterior) {
+        var margin = interior[0].radius - venn.distance(interior[0], current), i, m;
+        for (i = 1; i < interior.length; ++i) {
+            m = interior[i].radius - venn.distance(interior[i], current);
+            if (m <= margin) {
+                margin = m;
             }
         }
 
-        function getCircles(area) {
-            return area.map(function(a) { return circles[a]; });
+        for (i = 0; i < exterior.length; ++i) {
+            m = venn.distance(exterior[i], current) - exterior[i].radius;
+            if (m <= margin) {
+                margin = m;
+            }
+        }
+        return margin;
+    }
+
+    // compute the center of some circles by maximizing the margin of 
+    // the center point relative to the circles (interior) after subtracting
+    // nearby circles (exterior)
+    function computeTextCentre(interior, exterior) {
+        // get an initial estimate by sampling around the interior circles
+        // and taking the point with the biggest margin
+        var points = [], i;
+        for (i = 0; i < interior.length; ++i) {
+            var c = interior[i];
+            points.push({x: c.x, y: c.y});
+            points.push({x: c.x + c.radius/2, y: c.y});
+            points.push({x: c.x - c.radius/2, y: c.y});
+            points.push({x: c.x, y: c.y + c.radius/2});
+            points.push({x: c.x, y: c.y - c.radius/2});
+        }
+        var initial = points[0], margin = circleMargin(points[0], interior, exterior);
+        for (i = 1; i < points.length; ++i) {
+            var m = circleMargin(points[i], interior, exterior);
+            if (m >= margin) {
+                initial = points[i];
+                margin = m;
+            }
         }
 
-        var ret = {};
-        for (i = 0; i < areas.length; ++i) {
-            var area = areas[i].sets;
-            if (points.hasOwnProperty(area)) {
-                ret[area] = venn.getCenter(points[area]);
-                // todo: if the point isn't in the area (could not even be a
-                // circle), find the nearest point that is in the region,
-                // extend past that
-            } else if (area.length == 1) {
-                // small/missing intersection area. default to circle centre
-                var circle = circles[area[0]];
-                ret[area] = {'x': circle.x, 'y': circle.y };
+        // maximize the margin numerically
+        var solution = venn.fmin(
+                    function(p) { return -1 * circleMargin({x: p[0], y: p[1]}, interior, exterior); },
+                    [initial.x, initial.y],
+                    {maxIterations:500, minErrorDelta:1e-10}).solution;
+        var ret = {x: solution[0], y: solution[1]};
 
+        // check solution, fallback as needed (happens if fully overlapped
+        // etc)
+        var valid = true;
+        for (i = 0; i < interior.length; ++i) {
+            if (venn.distance(ret, interior[i]) > interior[i].radius) {
+                valid = false;
+                break;
+            }
+        }
+
+        for (i = 0; i < exterior.length; ++i) {
+            if (venn.distance(ret, exterior[i]) < exterior[i].radius) {
+                valid = false;
+                break;
+            }
+        }
+
+        if (!valid) {
+            if (interior.length == 1) {
+                ret = {x: interior[0].x, y: interior[0].y};
             } else {
                 var areaStats = {};
-                venn.intersectionArea(getCircles(area), areaStats);
+                venn.intersectionArea(interior, areaStats);
 
                 if (areaStats.arcs.length === 0) {
-                    if (areas[i].size > 0) {
-                        console.log("WARNING: area " + JSON.stringify(area) + " isn't represented on diagram" );
-                    }
-                    ret[area] = {'x' : 0, 'y' : -1000};
+                    ret = {'x': 0, 'y': -1000, disjoint:true};
                 } else {
-                    // take average of all the points in the outer perimiter
-                    ret[area] = venn.getCenter(areaStats.arcs.map(function (a) { return a.p1; }));
+                    // take average of all the points in the intersection
+                    // polygon
+                    ret = venn.getCenter(areaStats.arcs.map(function (a) { return a.p1; }));
                 }
             }
         }
+
         return ret;
     }
+    venn.computeTextCentre = computeTextCentre;
+
+    function computeTextCentres(circles, areas) {
+        var ret = {};
+        for (var i = 0; i < areas.length; ++i) {
+            var area = areas[i].sets, areaids = {};
+            for (var j = 0; j < area.length; ++j) {
+                areaids[area[j]] = true;
+            }
+
+            var interior = [], exterior = [];
+            for (var setid in circles) {
+                if (setid in areaids) {
+                    interior.push(circles[setid]);
+                } else {
+                    exterior.push(circles[setid]);
+                }
+            }
+            var centre = computeTextCentre(interior, exterior);
+            ret[area] = centre;
+            if (centre.disjoint && (areas[i].size > 0)) {
+                console.log("WARNING: area " + area + " not represented on screen");
+            }
+        }
+        return  ret;
+    }
+    venn.computeTextCentres = computeTextCentres;
 
     // sorts all areas in the venn diagram, so that
     // a particular area is on top (relativeTo) - and

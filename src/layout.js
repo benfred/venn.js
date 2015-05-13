@@ -1,4 +1,5 @@
 (function(venn) {
+    "use strict";
     /** given a list of set objects, and their corresponding overlaps.
     updates the (x, y, radius) attribute on each set such that their positions
     roughly correspond to the desired overlaps */
