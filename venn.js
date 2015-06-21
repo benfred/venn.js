@@ -7,14 +7,19 @@ var venn = venn || {};
             height = 350,
             padding = 15,
             duration = 1000,
+            orientation = Math.PI / 2,
+            normalize = true,
             fontSize = null,
             colours = d3.scale.category10(),
             layoutFunction = venn.venn;
 
         function chart(selection) {
             selection.each(function(data) {
-                // calculate circle position, scale to fit
-                var circles = venn.scaleSolution(layoutFunction(data), width, height, padding);
+                var solution = layoutFunction(data);
+                if (normalize) {
+                    solution = venn.normalizeSolution(solution, orientation);
+                }
+                var circles = venn.scaleSolution(solution, width, height, padding);
                 var textCentres = computeTextCentres(circles, data);
 
                 // draw out a svg
@@ -166,6 +171,17 @@ var venn = venn || {};
         chart.layoutFunction = function(_) {
             if (!arguments.length) return layoutFunction;
             layoutFunction = _;
+            return chart;
+        };
+
+        chart.normalize = function(_) {
+            if (!arguments.length) return normalize;
+            normalize = _;
+            return chart;
+        };
+        chart.orientation = function(_) {
+            if (!arguments.length) return orientation;
+            orientation = _;
             return chart;
         };
 
@@ -691,6 +707,201 @@ var venn = venn || {};
         return output;
     };
 
+    // orientates a bunch of circles to point in orientation
+    function orientateCircles(circles, orientation) {
+        // sort circles by size
+        circles.sort(function (a, b) { return b.radius - a.radius; });
+
+        var i;
+        // shift circles so largest circle is at (0, 0)
+        if (circles.length > 0) {
+            var largestX = circles[0].x,
+                largestY = circles[0].y;
+
+            for (i = 0; i < circles.length; ++i) {
+                circles[i].x -= largestX;
+                circles[i].y -= largestY;
+            }
+        }
+
+        // rotate circles so that second largest is at an angle of 'orientation'
+        // from largest
+        if (circles.length > 1) {
+            var rotation = Math.atan2(circles[1].x, circles[1].y) - orientation,
+                c = Math.cos(rotation),
+                s = Math.sin(rotation), x, y;
+
+            for (i = 0; i < circles.length; ++i) {
+                x = circles[i].x;
+                y = circles[i].y;
+                circles[i].x = c * x - s * y;
+                circles[i].y = s * x + c * y;
+            }
+        }
+
+        // mirror solution if third solution is above plane specified by
+        // first two circles
+        if (circles.length > 2) {
+            var angle = Math.atan2(circles[2].x, circles[2].y) - orientation;
+            while (angle < 0) { angle += 2* Math.PI; }
+            while (angle > 2*Math.PI) { angle -= 2* Math.PI; }
+            if (angle > Math.PI) {
+                var slope = circles[1].y / (1e-10 + circles[1].x);
+                for (i = 0; i < circles.length; ++i) {
+                    var d = (circles[i].x + slope * circles[i].y) / (1 + slope*slope);
+                    circles[i].x = 2 * d - circles[i].x;
+                    circles[i].y = 2 * d * slope - circles[i].y;
+                }
+            }
+        }
+    }
+
+    venn.disjointCluster = function(circles) {
+        // union-find clustering to get disjoint sets
+        circles.map(function(circle) { circle.parent = circle; });
+
+        // path compression step in union find
+        function find(circle) {
+            if (circle.parent !== circle) {
+                circle.parent = find(circle.parent);
+            }
+            return circle.parent;
+        }
+
+        function union(x, y) {
+            var xRoot = find(x), yRoot = find(y);
+            xRoot.parent = yRoot;
+        }
+
+        // get the union of all overlapping sets
+        for (var i = 0; i < circles.length; ++i) {
+            for (var j = i + 1; j < circles.length; ++j) {
+                var maxDistance = circles[i].radius + circles[j].radius;
+                if (venn.distance(circles[i], circles[j]) + 1e-10 < maxDistance) {
+                    union(circles[j], circles[i]);
+                }
+            }
+        }
+
+        // find all the disjoint clusters and group them together
+        var disjointClusters = {}, setid;
+        for (i = 0; i < circles.length; ++i) {
+            setid = find(circles[i]).parent.setid;
+            if (!(setid in disjointClusters)) {
+                disjointClusters[setid] = [];
+            }
+            disjointClusters[setid].push(circles[i]);
+        }
+
+        // cleanup bookkeeping
+        circles.map(function(circle) { delete circle.parent; });
+
+        // return in more usable form
+        var ret = [];
+        for (setid in disjointClusters) {
+            if (disjointClusters.hasOwnProperty(setid)) {
+                ret.push(disjointClusters[setid]);
+            }
+        }
+        return ret;
+    };
+
+    function getBoundingBox(circles) {
+        var minMax = function(d) {
+            var hi = Math.max.apply(null, circles.map(
+                                    function(c) { return c[d] + c.radius; } )),
+                lo = Math.min.apply(null, circles.map(
+                                    function(c) { return c[d] - c.radius;} ));
+            return {max:hi, min:lo};
+        };
+
+        return {xRange: minMax('x'), yRange: minMax('y')};
+    }
+
+    venn.normalizeSolution = function(solution, orientation) {
+        orientation = orientation || Math.PI/2;
+
+        // work with a list instead of a dictionary, and take a copy so we
+        // don't mutate input
+        var circles = [], i, setid;
+        for (setid in solution) {
+            if (solution.hasOwnProperty(setid)) {
+                var previous = solution[setid];
+                circles.push({x: previous.x,
+                              y: previous.y,
+                              radius: previous.radius,
+                              setid: setid});
+            }
+        }
+
+        // get all the disjoint clusters
+        var clusters = venn.disjointCluster(circles);
+
+        // orientate all disjoint sets, get sizes
+        for (i = 0; i < clusters.length; ++i) {
+            orientateCircles(clusters[i], orientation);
+            var bounds = getBoundingBox(clusters[i]);
+            clusters[i].size = (bounds.xRange.max - bounds.xRange.min) * (bounds.yRange.max - bounds.yRange.min);
+            clusters[i].bounds = bounds;
+        }
+        clusters.sort(function(a, b) { return b.size - a.size; });
+
+        // orientate the largest at 0,0, and get the bounds
+        circles = clusters[0];
+        var returnBounds = circles.bounds;
+
+        var spacing = (returnBounds.xRange.max - returnBounds.xRange.min)/50;
+
+        function addCluster(cluster, right, bottom) {
+            if (!cluster) return;
+
+            var bounds = cluster.bounds, xOffset, yOffset, centreing;
+
+            if (right) {
+                xOffset = returnBounds.xRange.max  - bounds.xRange.min + spacing;
+            } else {
+                xOffset = returnBounds.xRange.max  - bounds.xRange.max - spacing;
+                centreing = (bounds.xRange.max - bounds.xRange.min) / 2 -
+                            (returnBounds.xRange.max - returnBounds.xRange.min) / 2;
+                if (centreing < 0) xOffset += centreing;
+            }
+
+            if (bottom) {
+                yOffset = returnBounds.yRange.max  - bounds.yRange.min + spacing;
+            } else {
+                yOffset = returnBounds.yRange.max  - bounds.yRange.max - spacing;
+                centreing = (bounds.yRange.max - bounds.yRange.min) / 2 -
+                            (returnBounds.yRange.max - returnBounds.yRange.min) / 2;
+                if (centreing < 0) yOffset += centreing;
+            }
+
+            for (var j = 0; j < cluster.length; ++j) {
+                cluster[j].x += xOffset;
+                cluster[j].y += yOffset;
+                circles.push(cluster[j]);
+            }
+        }
+
+        var index = 1;
+        while (index < clusters.length) {
+            addCluster(clusters[index], true, false);
+            addCluster(clusters[index+1], false, true);
+            addCluster(clusters[index+2], true, true);
+            index += 3;
+
+            // have one cluster (in top left). lay out next three relative
+            // to it in a grid
+            returnBounds = getBoundingBox(circles);
+        }
+
+        // convert back to solution form
+        var ret = {};
+        for (i = 0; i < circles.length; ++i) {
+            ret[circles[i].setid] = circles[i];
+        }
+        return ret;
+    };
+
     /** Scales a solution from venn.venn or venn.greedyLayout such that it fits in
     a rectangle of width/height - with padding around the borders. also
     centers the diagram in the available space at the same time */
@@ -703,19 +914,12 @@ var venn = venn || {};
             }
         }
 
-        var minMax = function(d) {
-            var hi = Math.max.apply(null, circles.map(
-                                    function(c) { return c[d] + c.radius; } )),
-                lo = Math.min.apply(null, circles.map(
-                                    function(c) { return c[d] - c.radius;} ));
-            return {max:hi, min:lo};
-        };
-
         width -= 2*padding;
         height -= 2*padding;
 
-        var xRange = minMax('x'),
-            yRange = minMax('y'),
+        var bounds = getBoundingBox(circles),
+            xRange = bounds.xRange,
+            yRange = bounds.yRange,
             xScaling = width  / (xRange.max - xRange.min),
             yScaling = height / (yRange.max - yRange.min),
             scaling = Math.min(yScaling, xScaling),

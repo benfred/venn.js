@@ -5,14 +5,19 @@
             height = 350,
             padding = 15,
             duration = 1000,
+            orientation = Math.PI / 2,
+            normalize = true,
             fontSize = null,
             colours = d3.scale.category10(),
             layoutFunction = venn.venn;
 
         function chart(selection) {
             selection.each(function(data) {
-                // calculate circle position, scale to fit
-                var circles = venn.scaleSolution(layoutFunction(data), width, height, padding);
+                var solution = layoutFunction(data);
+                if (normalize) {
+                    solution = venn.normalizeSolution(solution, orientation);
+                }
+                var circles = venn.scaleSolution(solution, width, height, padding);
                 var textCentres = computeTextCentres(circles, data);
 
                 // draw out a svg
@@ -164,6 +169,17 @@
         chart.layoutFunction = function(_) {
             if (!arguments.length) return layoutFunction;
             layoutFunction = _;
+            return chart;
+        };
+
+        chart.normalize = function(_) {
+            if (!arguments.length) return normalize;
+            normalize = _;
+            return chart;
+        };
+        chart.orientation = function(_) {
+            if (!arguments.length) return orientation;
+            orientation = _;
             return chart;
         };
 

@@ -16,6 +16,11 @@
                message + ": " + left + " ~== " + right);
         }
 
+        function lessThan(left, right, message) {
+            message = message || "lessThan";
+            ok(left < right, message + ": " + left + " < " + right);
+        }
+
         test("greedyLayout", function() {
             var areas = [{sets: [0], size:0.7746543297103429},
                          {sets: [1], size:0.1311252856844238},
@@ -217,6 +222,45 @@
             var center = venn.computeTextCentre([{x: 0, y: 0, radius: 1}],  [{x: 0, y: 1, radius: 1}]);
             nearlyEqual(center.x, 0, 1e-4);
             nearlyEqual(center.y, -.5);
+        });
+
+        test("normalizeSolution", function() {
+            // test two circles that are far apart
+            var solution = [{x: 0, y: 0, radius: .5}, 
+                            {x: 1e10, y:0, radius: 1.5}];
+            
+            // should be placed close together
+            var normalized = venn.normalizeSolution(solution);
+            // distance should be 2, but we space things out
+            lessThan(venn.distance(normalized[0], normalized[1]), 2.1);
+        });
+
+        test("disjointClusters", function() {
+            var input = [
+                {
+                    "x": 0.8047033110633492,
+                    "y": 0.9396705999970436,
+                    "radius": 0.47156485118903224,
+                },
+                {
+                    "x": 0.7961132447235286,
+                    "y": 0.014027722179889679,
+                    "radius": 0.14554832570720466,
+                },
+                {
+                    "x": 0.28841276094317436,
+                    "y": 0.98081015329808,
+                    "radius": 0.9851036085514352,
+                },
+                {
+                    "x": 0.7689983483869582,
+                    "y": 0.2899463507346809,
+                    "radius": 0.7210563338827342,
+                }
+            ];
+
+            var clusters = venn.disjointCluster(input);
+            equal(clusters.length, 1);
         });
     </script>
 </head>
