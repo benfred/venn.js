@@ -1,0 +1,217 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>venn.js normalization test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Ben Frederickson">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.8/c3.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/css/bootstrap.min.css">
+</head>
+<body>
+
+<div class="container"><div class="row"><div class="col-sm-8 col-sm-offset-2">
+<div class="page-header">
+    <h3> Venn Diagram Normalization Test</h3>
+</div>
+<p>This page tests out the venn diagram normalization code.</p>
+
+<p> Different algorithms can produce different looking output that is equally
+correct. This code attempts to remove the major differences by axis aligning
+the major sets, taking the mirror image if needed, and re-arranging all the
+disjoint clusters so that they are close to one another.
+</p>
+
+<p>Since this normalization process could have bugs that introduce errors into
+the venn diagram, this page tests out that the areas of the venn diagram before and after the 
+normalization are the same.</p>
+
+
+<div id ="visualtest" class="well" style="background:#FFFFFF;">
+    <button type="button" class="btn btn-default" id="testagain">
+      <span class="glyphicon glyphicon-refresh"></span> Randomize
+    </button>
+
+    <button type="button" class="btn btn-default" id="scanerror">
+      <span class="glyphicon glyphicon-arrow-right"></span> Find next failure
+    </button>
+
+    <div class="btn-group">
+    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+      <span id="circle_count_label">4 Sets</span> <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu" role="menu">
+      <li><a class="circle2">2 Sets</a></li>
+      <li><a class="circle3">3 Sets</a></li>
+      <li><a class="circle4">4 Sets</a></li>
+      <li><a class="circle5">5 Sets</a></li>
+      <li><a class="circle6">6 Sets</a></li>
+      <li><a class="circle7">7 Sets</a></li>
+      <li><a class="circle8">8 Sets</a></li>
+    </ul>
+    </div>
+
+    <div class="btn-group">
+       <button type="button" class="btn btn-default radiusbutton" data-toggle="modal"
+           data-target="#radiusModal" data-callback="originalviz">
+             Radii in (0.05, 0.2) ...
+       </button>
+    </div>
+
+    <div class="row">
+        <div id="original" class="col-sm-6">
+            <h3 style="text-align:center">Original</h3>
+        </div>
+        <div id="reconstructed" class="col-sm-6">
+            <h3 style="text-align:center">Normalized</h3>
+        </div>
+        <div style="clear:both;"></div>
+    </div>
+</div>
+</div></div></div>
+
+<!-- Modal -->
+<div class="modal fade" id="radiusModal" tabindex="-1" role="dialog"
+    aria-labelledby="radiusModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria8hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="radiusModalLabel">Change Circle Radius</h4>
+      </div>
+      <div class="modal-body">
+        <form class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-6 control-label">Minimum Radius</label>
+            <div class="col-sm-6">
+              <input type="number" class="form-control" id="minRadius" value="0.05">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="maxRaduis" class="col-sm-6 control-label">Maximum Radius</label>
+            <div class="col-sm-6">
+              <input type="number" class="form-control" id="maxRadius" value="0.2">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="http://www.numericjs.com/lib/numeric-1.2.6.min.js"></script>
+    <script src="http://www.benfrederickson.com/images/mds.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.8/c3.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+    <script src="../venn.js"></script>
+    <script src="./test_utils.js"></script>
+    <script>
+        var div = d3.select("#visualtest")
+        var width = div.select("#original")[0][0].offsetWidth - 15;
+        var circleCount = 4, current;
+        var minRadius = 0.05, maxRadius = 0.2;
+
+        var currentChart = venn.VennDiagram()
+            .layoutFunction(function (x) { return current; })
+            .normalize(false)
+            .width(width)
+            .height(Math.min(width, 250));
+
+        function randomizePositions() {
+            var original = generateRandomCircles(circleCount,
+                                                 minRadius,
+                                                 maxRadius);
+            var areas = getIntersections(original);
+            var computed = venn.normalizeSolution(original, 0);
+            setAreas(original, areas, computed);
+        }
+    
+        function setAreas(original, areas, computed) {
+            // update original
+            current = original;
+            div.select("#original").datum(areas).call(currentChart);
+
+            // update reconstructed
+            current = computed;
+            div.select("#reconstructed").datum(areas).call(currentChart);
+
+            var success = hilightErrors(div, areas, current);
+            div.select("#reconstructed h3").text("Normalized: " + (success ? "Success!" : "Failure"));
+        };
+
+       function scanerror() {
+            var original, areas, computed, failedAreas;
+            for (var i = 0; i < 1000; ++i) {
+                original = generateRandomCircles(circleCount, minRadius, maxRadius);
+                areas = getIntersections(original);
+                computed = venn.normalizeSolution(original);
+
+                var failedAreas = getErrors(areas, computed);
+                if (failedAreas.length) {
+                    console.log("FAILED!");
+                    console.log(JSON.stringify(original, null, "\t"));
+                    break;
+                }
+            }
+
+            setAreas(original, areas, computed);
+            var heading = div.select("#reconstructed h3");
+            heading.text("Reconstructed: " + (failedAreas.length == 0 ? "Success!" : "Failure"));
+            heading.append("br")
+
+            if (failedAreas.length) {
+                heading.append("small").text( "Ran " + (i) + " trails before finding an error");
+            } else {
+                heading.append("small").text( "Ran " + (i) + " trails without finding an error");
+            }
+        }
+
+        function setCircles(c) {
+            circleCount = c;
+            div.select("#circle_count_label").text(circleCount + " Sets");
+            randomizePositions();
+        }
+
+        $('#radiusModal').on('show.bs.modal', function (e) {
+             $(e.currentTarget).find("#minRadius")[0].value = minRadius;
+             $(e.currentTarget).find("#maxRadius")[0].value = maxRadius;
+         });
+
+         $('#radiusModal').on('hide.bs.modal', function (e) {
+            minRadius = Math.max(parseFloat($(e.currentTarget).find("#minRadius")[0].value), 0);
+            maxRadius = Math.min(parseFloat($(e.currentTarget).find("#maxRadius")[0].value), 1);
+
+            if (minRadius > maxRadius) {
+                minRadius = maxRadius;
+            } 
+            $(".radiusbutton").text("Radii in (" + minRadius + ", " + maxRadius + ") ..." );
+            randomizePositions();
+        });
+
+
+        div.select("#testagain").on("click", randomizePositions);
+        div.select("#scanerror").on("click", scanerror);
+        div.select(".circle2").on("click", function() { setCircles(2); });
+        div.select(".circle3").on("click", function() { setCircles(3); });
+        div.select(".circle4").on("click", function() { setCircles(4); });
+        div.select(".circle5").on("click", function() { setCircles(5); });
+        div.select(".circle6").on("click", function() { setCircles(6); });
+        div.select(".circle7").on("click", function() { setCircles(7); });
+        div.select(".circle8").on("click", function() { setCircles(8); });
+
+
+        div.select(".greedy").on("click", function() { setInitial('Greedy'); });
+        div.select(".mds").on("click", function() { setInitial('MDS'); });
+        div.select(".random").on("click", function() { setInitial('Random'); });
+        div.select(".constrained").on("click", function() { setInitial('Constrained'); });
+        div.select(".best").on("click", function() { setInitial('Pseudo'); });
+        randomizePositions();
+
+    </script>
+</html>

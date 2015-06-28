@@ -1,18 +1,26 @@
- (function(venn) {
+var venn = venn || {'version' : '0.2'};
+
+(function(venn) {
+    "use strict";
     venn.VennDiagram = function() {
         var width = 600,
             height = 350,
             padding = 15,
             duration = 1000,
+            orientation = Math.PI / 2,
+            normalize = true,
             fontSize = null,
             colours = d3.scale.category10(),
             layoutFunction = venn.venn;
 
         function chart(selection) {
             selection.each(function(data) {
-                // calculate circle position, scale to fit
-                var circles = venn.scaleSolution(layoutFunction(data), width, height, padding);
-                var textCentres = computeTextCentres(circles, data, width, height);
+                var solution = layoutFunction(data);
+                if (normalize) {
+                    solution = venn.normalizeSolution(solution, orientation);
+                }
+                var circles = venn.scaleSolution(solution, width, height, padding);
+                var textCentres = computeTextCentres(circles, data);
 
                 // draw out a svg
                 var svg = d3.select(this).selectAll("svg").data([circles]);
@@ -166,9 +174,251 @@
             return chart;
         };
 
+        chart.normalize = function(_) {
+            if (!arguments.length) return normalize;
+            normalize = _;
+            return chart;
+        };
+        chart.orientation = function(_) {
+            if (!arguments.length) return orientation;
+            orientation = _;
+            return chart;
+        };
+
         return chart;
     };
+    // sometimes text doesn't fit inside the circle, if thats the case lets wrap
+    // the text here such that it fits
+    // todo: looks like this might be merged into d3 (
+    // https://github.com/mbostock/d3/issues/1642),
+    // also worth checking out is
+    // http://engineering.findthebest.com/wrapping-axis-labels-in-d3-js/
+    // this seems to be one of those things that should be easy but isn't
+    venn.wrapText = function(circles, labeller) {
+        return function() {
+            var text = d3.select(this),
+                data = text.datum(),
+                width = circles[data.sets[0]].radius || 50,
+                label = labeller(data) || '';
 
+                var words = label.split(/\s+/).reverse(),
+                maxLines = 3,
+                minChars = (label.length + words.length) / maxLines,
+                word = words.pop(),
+                line = [word],
+                joined,
+                lineNumber = 0,
+                lineHeight = 1.1, // ems
+                tspan = text.text(null).append("tspan").text(word);
+
+            while (true) {
+                word = words.pop();
+                if (!word) break;
+                line.push(word);
+                joined = line.join(" ");
+                tspan.text(joined);
+                if (joined.length > minChars && tspan.node().getComputedTextLength() > width) {
+                    line.pop();
+                    tspan.text(line.join(" "));
+                    line = [word];
+                    tspan = text.append("tspan").text(word);
+                    lineNumber++;
+                }
+            }
+
+            var initial = 0.35 - lineNumber * lineHeight / 2,
+                x = text.attr("x"),
+                y = text.attr("y");
+
+            text.selectAll("tspan")
+                .attr("x", x)
+                .attr("y", y)
+                .attr("dy", function(d, i) {
+                     return (initial + i * lineHeight) + "em";
+                });
+        };
+    };
+
+    function circleMargin(current, interior, exterior) {
+        var margin = interior[0].radius - venn.distance(interior[0], current), i, m;
+        for (i = 1; i < interior.length; ++i) {
+            m = interior[i].radius - venn.distance(interior[i], current);
+            if (m <= margin) {
+                margin = m;
+            }
+        }
+
+        for (i = 0; i < exterior.length; ++i) {
+            m = venn.distance(exterior[i], current) - exterior[i].radius;
+            if (m <= margin) {
+                margin = m;
+            }
+        }
+        return margin;
+    }
+
+    // compute the center of some circles by maximizing the margin of
+    // the center point relative to the circles (interior) after subtracting
+    // nearby circles (exterior)
+    function computeTextCentre(interior, exterior) {
+        // get an initial estimate by sampling around the interior circles
+        // and taking the point with the biggest margin
+        var points = [], i;
+        for (i = 0; i < interior.length; ++i) {
+            var c = interior[i];
+            points.push({x: c.x, y: c.y});
+            points.push({x: c.x + c.radius/2, y: c.y});
+            points.push({x: c.x - c.radius/2, y: c.y});
+            points.push({x: c.x, y: c.y + c.radius/2});
+            points.push({x: c.x, y: c.y - c.radius/2});
+        }
+        var initial = points[0], margin = circleMargin(points[0], interior, exterior);
+        for (i = 1; i < points.length; ++i) {
+            var m = circleMargin(points[i], interior, exterior);
+            if (m >= margin) {
+                initial = points[i];
+                margin = m;
+            }
+        }
+
+        // maximize the margin numerically
+        var solution = venn.fmin(
+                    function(p) { return -1 * circleMargin({x: p[0], y: p[1]}, interior, exterior); },
+                    [initial.x, initial.y],
+                    {maxIterations:500, minErrorDelta:1e-10}).solution;
+        var ret = {x: solution[0], y: solution[1]};
+
+        // check solution, fallback as needed (happens if fully overlapped
+        // etc)
+        var valid = true;
+        for (i = 0; i < interior.length; ++i) {
+            if (venn.distance(ret, interior[i]) > interior[i].radius) {
+                valid = false;
+                break;
+            }
+        }
+
+        for (i = 0; i < exterior.length; ++i) {
+            if (venn.distance(ret, exterior[i]) < exterior[i].radius) {
+                valid = false;
+                break;
+            }
+        }
+
+        if (!valid) {
+            if (interior.length == 1) {
+                ret = {x: interior[0].x, y: interior[0].y};
+            } else {
+                var areaStats = {};
+                venn.intersectionArea(interior, areaStats);
+
+                if (areaStats.arcs.length === 0) {
+                    ret = {'x': 0, 'y': -1000, disjoint:true};
+                } else {
+                    // take average of all the points in the intersection
+                    // polygon
+                    ret = venn.getCenter(areaStats.arcs.map(function (a) { return a.p1; }));
+                }
+            }
+        }
+
+        return ret;
+    }
+    venn.computeTextCentre = computeTextCentre;
+
+    function computeTextCentres(circles, areas) {
+        var ret = {};
+        for (var i = 0; i < areas.length; ++i) {
+            var area = areas[i].sets, areaids = {};
+            for (var j = 0; j < area.length; ++j) {
+                areaids[area[j]] = true;
+            }
+
+            var interior = [], exterior = [];
+            for (var setid in circles) {
+                if (setid in areaids) {
+                    interior.push(circles[setid]);
+                } else {
+                    exterior.push(circles[setid]);
+                }
+            }
+            var centre = computeTextCentre(interior, exterior);
+            ret[area] = centre;
+            if (centre.disjoint && (areas[i].size > 0)) {
+                console.log("WARNING: area " + area + " not represented on screen");
+            }
+        }
+        return  ret;
+    }
+    venn.computeTextCentres = computeTextCentres;
+
+    // sorts all areas in the venn diagram, so that
+    // a particular area is on top (relativeTo) - and
+    // all other areas are so that the smallest areas are on top
+    venn.sortAreas = function(div, relativeTo) {
+        // need to sort div's so that Z order is correct
+        div.selectAll("g").sort(function (a, b) {
+            // highest order set intersections first
+            if (a.sets.length != b.sets.length) {
+                return a.sets.length - b.sets.length;
+            }
+
+            // current element is highest inside its order
+            if ((a == relativeTo) || (b == relativeTo)) {
+                return (a == relativeTo) ? 1 : -1;
+            }
+
+            // finally by size
+            return b.size - a.size;
+        });
+    };
+
+    venn.circlePath = function(x, y, r) {
+        var ret = [];
+        ret.push("\nM", x, y);
+        ret.push("\nm", -r, 0);
+        ret.push("\na", r, r, 0, 1, 0, r *2, 0);
+        ret.push("\na", r, r, 0, 1, 0,-r *2, 0);
+        return ret.join(" ");
+    };
+
+    // inverse of the circlePath function, returns a circle object from an svg path
+    venn.circleFromPath = function(path) {
+        var tokens = path.split(' ');
+        return {'x' : parseFloat(tokens[1]),
+                'y' : parseFloat(tokens[2]),
+                'radius' : -parseFloat(tokens[4])
+                };
+    };
+
+    /** returns a svg path of the intersection area of a bunch of circles */
+    venn.intersectionAreaPath = function(circles) {
+        var stats = {};
+        venn.intersectionArea(circles, stats);
+        var arcs = stats.arcs;
+
+        if (arcs.length === 0) {
+            return "M 0 0";
+
+        } else if (arcs.length == 1) {
+            var circle = arcs[0].circle;
+            return venn.circlePath(circle.x, circle.y, circle.radius);
+
+        } else {
+            // draw path around arcs
+            var ret = ["\nM", arcs[0].p2.x, arcs[0].p2.y];
+            for (var i = 0; i < arcs.length; ++i) {
+                var arc = arcs[i], r = arc.circle.radius, wide = arc.width > r;
+                ret.push("\nA", r, r, 0, wide ? 1 : 0, 1,
+                         arc.p1.x, arc.p1.y);
+            }
+            return ret.join(" ");
+        }
+    };
+})(venn);
+
+(function(venn) {
+    "use strict";
     /** given a list of set objects, and their corresponding overlaps.
     updates the (x, y, radius) attribute on each set such that their positions
     roughly correspond to the desired overlaps */
@@ -176,7 +426,7 @@
         parameters = parameters || {};
         parameters.maxIterations = parameters.maxIterations || 500;
         var lossFunction = parameters.lossFunction || venn.lossFunction;
-        var initialLayout = parameters.initialLayout || venn.greedyLayout;
+        var initialLayout = parameters.initialLayout || venn.bestInitialLayout;
         var fmin = parameters.fmin || venn.fmin;
 
         // initial layout is done greedily
@@ -222,6 +472,8 @@
         return circles;
     };
 
+    var SMALL = 1e-10;
+
     /** Returns the distance necessary for two circles of radius r1 + r2 to
     have the overlap area 'overlap' */
     venn.distanceFromIntersectArea = function(r1, r2, overlap) {
@@ -235,24 +487,17 @@
         }, 0, r1 + r2);
     };
 
-    /// gets a matrix of euclidean distances between all sets in venn diagram
-    venn.getDistanceMatrix = function(areas, sets, setids) {
+    /// Returns two matrices, one of the euclidean distances between the sets
+    /// and the other indicating if there are subset or disjoint set relationships
+    venn.getDistanceMatrices = function(areas, sets, setids) {
         // initialize an empty distance matrix between all the points
-        var distances = [];
-        for (var i = 0; i < sets.length; ++i) {
-            distances.push([]);
-            for (var j = 0; j < sets.length; ++j) {
-                distances[i].push(0);
-            }
-        }
+        var distances = venn.zerosM(sets.length, sets.length),
+            constraints = venn.zerosM(sets.length, sets.length);
 
-        // compute distances between all the points
-        for (i = 0; i < areas.length; ++i) {
-            var current = areas[i];
-            if (current.sets.length !== 2) {
-                continue;
-            }
-
+        // compute required distances between all the sets such that
+        // the areas match
+        areas.filter(function(x) { return x.sets.length == 2; })
+            .map(function(current) {
             var left = setids[current.sets[0]],
                 right = setids[current.sets[1]],
                 r1 = Math.sqrt(sets[left].size / Math.PI),
@@ -260,8 +505,134 @@
                 distance = venn.distanceFromIntersectArea(r1, r2, current.size);
 
             distances[left][right] = distances[right][left] = distance;
+
+            // also update constraints to indicate if its a subset or disjoint
+            // relationship
+            var c = 0;
+            if (current.size + 1e-10 >= Math.min(sets[left].size,
+                                                 sets[right].size)) {
+                c = 1;
+            } else if (current.size <= 1e-10) {
+                c = -1;
+            }
+            constraints[left][right] = constraints[right][left] = c;
+        });
+
+        return {distances: distances, constraints: constraints};
+    };
+
+    /// computes the gradient and loss simulatenously for our constrained MDS optimizer
+    function constrainedMDSGradient(x, fxprime, distances, constraints) {
+        var loss = 0, i;
+        for (i = 0; i < fxprime.length; ++i) {
+            fxprime[i] = 0;
         }
-        return distances;
+
+        for (i = 0; i < distances.length; ++i) {
+            var xi = x[2 * i], yi = x[2 * i + 1];
+            for (var j = i + 1; j < distances.length; ++j) {
+                var xj = x[2 * j], yj = x[2 * j + 1],
+                    dij = distances[i][j],
+                    constraint = constraints[i][j];
+
+                var squaredDistance = (xj - xi) * (xj - xi) + (yj - yi) * (yj - yi),
+                    distance = Math.sqrt(squaredDistance),
+                    delta = squaredDistance - dij * dij;
+
+                if (((constraint > 0) && (distance <= dij)) ||
+                    ((constraint < 0) && (distance >= dij))) {
+                    continue;
+                }
+
+                loss += 2 * delta * delta;
+
+                fxprime[2*i]     += 4 * delta * (xi - xj);
+                fxprime[2*i + 1] += 4 * delta * (yi - yj);
+
+                fxprime[2*j]     += 4 * delta * (xj - xi);
+                fxprime[2*j + 1] += 4 * delta * (yj - yi);
+            }
+        }
+        return loss;
+    }
+
+    /// takes the best working variant of either constrained MDS or greedy
+    venn.bestInitialLayout = function(areas, params) {
+        var initial = venn.greedyLayout(areas, params);
+
+        // greedylayout is sufficient for all 2/3 circle cases. try out
+        // constrained MDS for higher order problems, take its output
+        // if it outperforms. (greedy is aesthetically better on 2/3 circles
+        // since it axis aligns)
+        if (areas.length >= 8) {
+            var constrained  = venn.constrainedMDSLayout(areas, params),
+                constrainedLoss = venn.lossFunction(constrained, areas),
+                greedyLoss = venn.lossFunction(initial, areas);
+
+            if (constrainedLoss + 1e-8 < greedyLoss) {
+                initial = constrained;
+            }
+        }
+        return initial;
+    };
+
+    /// use the constrained MDS variant to generate an initial layout
+    venn.constrainedMDSLayout = function(areas, params) {
+        params = params || {};
+        var restarts = params.restarts || 10;
+
+        // bidirectionally map sets to a rowid  (so we can create a matrix)
+        var sets = [], setids = {}, i;
+        for (i = 0; i < areas.length; ++i ) {
+            var area = areas[i];
+            if (area.sets.length == 1) {
+                setids[area.sets[0]] = sets.length;
+                sets.push(area);
+            }
+        }
+
+        var matrices = venn.getDistanceMatrices(areas, sets, setids),
+            distances = matrices.distances,
+            constraints = matrices.constraints;
+
+        // keep distances bounded, things get messed up otherwise.
+        // TODO: proper preconditioner?
+        var norm = venn.norm2(distances.map(venn.norm2))/(distances.length);
+        distances = distances.map(function (row) {
+            return row.map(function (value) { return value / norm; });});
+
+        var obj = function(x, fxprime) {
+            return constrainedMDSGradient(x, fxprime, distances, constraints);
+        };
+
+        var best, current;
+        for (i = 0; i < restarts; ++i) {
+            var initial = venn.zeros(distances.length*2).map(Math.random);
+
+            current = venn.minimizeConjugateGradient(obj, initial, params);
+            if (!best || (current.fx < best.fx)) {
+                best = current;
+            }
+        }
+        var positions = best.x;
+
+        // translate rows back to (x,y,radius) coordinates
+        var circles = {};
+        for (i = 0; i < sets.length; ++i) {
+            var set = sets[i];
+            circles[set.sets[0]] = {
+                x: positions[2*i] * norm,
+                y: positions[2*i + 1] * norm,
+                radius:  Math.sqrt(set.size / Math.PI)
+            };
+        }
+
+        if (params.history) {
+            for (i = 0; i < params.history.length; ++i) {
+                venn.multiplyBy(params.history[i].x, norm);
+            }
+        }
+        return circles;
     };
 
     /** Lays out a Venn diagram greedily, going from most overlapped sets to
@@ -336,7 +707,7 @@
 
         // get distances between all points. TODO, necessary?
         // answer: probably not
-        // var distances = venn.getDistanceMatrix(circles, areas);
+        // var distances = venn.getDistanceMatrices(circles, areas).distances;
         for (i = 1; i < mostOverlapped.length; ++i) {
             var setIndex = mostOverlapped[i].set,
                 overlap = setOverlaps[setIndex].filter(isPositioned);
@@ -409,7 +780,7 @@
         }
 
         // get the distance matrix, and use to position sets
-        var distances = venn.getDistanceMatrix(areas, sets, setids);
+        var distances = venn.getDistanceMatrices(areas, sets, setids).distances;
         var positions = mds.classic(distances);
 
         // translate rows back to (x,y,radius) coordinates
@@ -455,6 +826,201 @@
         return output;
     };
 
+    // orientates a bunch of circles to point in orientation
+    function orientateCircles(circles, orientation) {
+        // sort circles by size
+        circles.sort(function (a, b) { return b.radius - a.radius; });
+
+        var i;
+        // shift circles so largest circle is at (0, 0)
+        if (circles.length > 0) {
+            var largestX = circles[0].x,
+                largestY = circles[0].y;
+
+            for (i = 0; i < circles.length; ++i) {
+                circles[i].x -= largestX;
+                circles[i].y -= largestY;
+            }
+        }
+
+        // rotate circles so that second largest is at an angle of 'orientation'
+        // from largest
+        if (circles.length > 1) {
+            var rotation = Math.atan2(circles[1].x, circles[1].y) - orientation,
+                c = Math.cos(rotation),
+                s = Math.sin(rotation), x, y;
+
+            for (i = 0; i < circles.length; ++i) {
+                x = circles[i].x;
+                y = circles[i].y;
+                circles[i].x = c * x - s * y;
+                circles[i].y = s * x + c * y;
+            }
+        }
+
+        // mirror solution if third solution is above plane specified by
+        // first two circles
+        if (circles.length > 2) {
+            var angle = Math.atan2(circles[2].x, circles[2].y) - orientation;
+            while (angle < 0) { angle += 2* Math.PI; }
+            while (angle > 2*Math.PI) { angle -= 2* Math.PI; }
+            if (angle > Math.PI) {
+                var slope = circles[1].y / (1e-10 + circles[1].x);
+                for (i = 0; i < circles.length; ++i) {
+                    var d = (circles[i].x + slope * circles[i].y) / (1 + slope*slope);
+                    circles[i].x = 2 * d - circles[i].x;
+                    circles[i].y = 2 * d * slope - circles[i].y;
+                }
+            }
+        }
+    }
+
+    venn.disjointCluster = function(circles) {
+        // union-find clustering to get disjoint sets
+        circles.map(function(circle) { circle.parent = circle; });
+
+        // path compression step in union find
+        function find(circle) {
+            if (circle.parent !== circle) {
+                circle.parent = find(circle.parent);
+            }
+            return circle.parent;
+        }
+
+        function union(x, y) {
+            var xRoot = find(x), yRoot = find(y);
+            xRoot.parent = yRoot;
+        }
+
+        // get the union of all overlapping sets
+        for (var i = 0; i < circles.length; ++i) {
+            for (var j = i + 1; j < circles.length; ++j) {
+                var maxDistance = circles[i].radius + circles[j].radius;
+                if (venn.distance(circles[i], circles[j]) + 1e-10 < maxDistance) {
+                    union(circles[j], circles[i]);
+                }
+            }
+        }
+
+        // find all the disjoint clusters and group them together
+        var disjointClusters = {}, setid;
+        for (i = 0; i < circles.length; ++i) {
+            setid = find(circles[i]).parent.setid;
+            if (!(setid in disjointClusters)) {
+                disjointClusters[setid] = [];
+            }
+            disjointClusters[setid].push(circles[i]);
+        }
+
+        // cleanup bookkeeping
+        circles.map(function(circle) { delete circle.parent; });
+
+        // return in more usable form
+        var ret = [];
+        for (setid in disjointClusters) {
+            if (disjointClusters.hasOwnProperty(setid)) {
+                ret.push(disjointClusters[setid]);
+            }
+        }
+        return ret;
+    };
+
+    function getBoundingBox(circles) {
+        var minMax = function(d) {
+            var hi = Math.max.apply(null, circles.map(
+                                    function(c) { return c[d] + c.radius; } )),
+                lo = Math.min.apply(null, circles.map(
+                                    function(c) { return c[d] - c.radius;} ));
+            return {max:hi, min:lo};
+        };
+
+        return {xRange: minMax('x'), yRange: minMax('y')};
+    }
+
+    venn.normalizeSolution = function(solution, orientation) {
+        orientation = orientation || Math.PI/2;
+
+        // work with a list instead of a dictionary, and take a copy so we
+        // don't mutate input
+        var circles = [], i, setid;
+        for (setid in solution) {
+            if (solution.hasOwnProperty(setid)) {
+                var previous = solution[setid];
+                circles.push({x: previous.x,
+                              y: previous.y,
+                              radius: previous.radius,
+                              setid: setid});
+            }
+        }
+
+        // get all the disjoint clusters
+        var clusters = venn.disjointCluster(circles);
+
+        // orientate all disjoint sets, get sizes
+        for (i = 0; i < clusters.length; ++i) {
+            orientateCircles(clusters[i], orientation);
+            var bounds = getBoundingBox(clusters[i]);
+            clusters[i].size = (bounds.xRange.max - bounds.xRange.min) * (bounds.yRange.max - bounds.yRange.min);
+            clusters[i].bounds = bounds;
+        }
+        clusters.sort(function(a, b) { return b.size - a.size; });
+
+        // orientate the largest at 0,0, and get the bounds
+        circles = clusters[0];
+        var returnBounds = circles.bounds;
+
+        var spacing = (returnBounds.xRange.max - returnBounds.xRange.min)/50;
+
+        function addCluster(cluster, right, bottom) {
+            if (!cluster) return;
+
+            var bounds = cluster.bounds, xOffset, yOffset, centreing;
+
+            if (right) {
+                xOffset = returnBounds.xRange.max  - bounds.xRange.min + spacing;
+            } else {
+                xOffset = returnBounds.xRange.max  - bounds.xRange.max - spacing;
+                centreing = (bounds.xRange.max - bounds.xRange.min) / 2 -
+                            (returnBounds.xRange.max - returnBounds.xRange.min) / 2;
+                if (centreing < 0) xOffset += centreing;
+            }
+
+            if (bottom) {
+                yOffset = returnBounds.yRange.max  - bounds.yRange.min + spacing;
+            } else {
+                yOffset = returnBounds.yRange.max  - bounds.yRange.max - spacing;
+                centreing = (bounds.yRange.max - bounds.yRange.min) / 2 -
+                            (returnBounds.yRange.max - returnBounds.yRange.min) / 2;
+                if (centreing < 0) yOffset += centreing;
+            }
+
+            for (var j = 0; j < cluster.length; ++j) {
+                cluster[j].x += xOffset;
+                cluster[j].y += yOffset;
+                circles.push(cluster[j]);
+            }
+        }
+
+        var index = 1;
+        while (index < clusters.length) {
+            addCluster(clusters[index], true, false);
+            addCluster(clusters[index+1], false, true);
+            addCluster(clusters[index+2], true, true);
+            index += 3;
+
+            // have one cluster (in top left). lay out next three relative
+            // to it in a grid
+            returnBounds = getBoundingBox(circles);
+        }
+
+        // convert back to solution form
+        var ret = {};
+        for (i = 0; i < circles.length; ++i) {
+            ret[circles[i].setid] = circles[i];
+        }
+        return ret;
+    };
+
     /** Scales a solution from venn.venn or venn.greedyLayout such that it fits in
     a rectangle of width/height - with padding around the borders. also
     centers the diagram in the available space at the same time */
@@ -467,19 +1033,12 @@
             }
         }
 
-        var minMax = function(d) {
-            var hi = Math.max.apply(null, circles.map(
-                                    function(c) { return c[d] + c.radius; } )),
-                lo = Math.min.apply(null, circles.map(
-                                    function(c) { return c[d] - c.radius;} ));
-            return {max:hi, min:lo};
-        };
-
         width -= 2*padding;
         height -= 2*padding;
 
-        var xRange = minMax('x'),
-            yRange = minMax('y'),
+        var bounds = getBoundingBox(circles),
+            xRange = bounds.xRange,
+            yRange = bounds.yRange,
             xScaling = width  / (xRange.max - xRange.min),
             yScaling = height / (yRange.max - yRange.min),
             scaling = Math.min(yScaling, xScaling),
@@ -500,57 +1059,10 @@
 
         return scaled;
     };
+})(venn);
 
-    // sometimes text doesn't fit inside the circle, if thats the case lets wrap
-    // the text here such that it fits
-    // todo: looks like this might be merged into d3 (
-    // https://github.com/mbostock/d3/issues/1642),
-    // also worth checking out is
-    // http://engineering.findthebest.com/wrapping-axis-labels-in-d3-js/
-    // this seems to be one of those things that should be easy but isn't
-    venn.wrapText = function(circles, labeller) {
-        return function() {
-            var text = d3.select(this),
-                data = text.datum(),
-                width = circles[data.sets[0]].radius || 50,
-                label = labeller(data) || '';
-
-                var words = label.split(/\s+/).reverse(),
-                maxLines = 3,
-                minChars = (label.length + words.length) / maxLines,
-                word = words.pop(),
-                line = [word],
-                joined,
-                lineNumber = 0,
-                lineHeight = 1.1, // ems
-                tspan = text.text(null).append("tspan").text(word);
-
-            while (word = words.pop()) {
-                line.push(word);
-                joined = line.join(" ");
-                tspan.text(joined);
-                if (joined.length > minChars && tspan.node().getComputedTextLength() > width) {
-                    line.pop();
-                    tspan.text(line.join(" "));
-                    line = [word];
-                    tspan = text.append("tspan").text(word);
-                    lineNumber++;
-                }
-            }
-
-            var initial = 0.35 - lineNumber * lineHeight / 2,
-                x = text.attr("x"),
-                y = text.attr("y");
-
-            text.selectAll("tspan")
-                .attr("x", x)
-                .attr("y", y)
-                .attr("dy", function(d, i) {
-                     return (initial + i * lineHeight) + "em";
-                });
-        };
-    };
-
+(function(venn) {
+    "use strict";
     /** finds the zeros of a function, given two starting points (which must
      * have opposite signs */
     venn.bisect = function(f, a, b, parameters) {
@@ -584,12 +1096,38 @@
         return a + delta;
     };
 
+    // need some basic operations on vectors, rather than adding a dependency,
+    // just define here
+    function zeros(x) { var r = new Array(x); for (var i = 0; i < x; ++i) { r[i] = 0; } return r; }
+    function zerosM(x,y) { return zeros(x).map(function() { return zeros(y); }); }
+    venn.zerosM = zerosM;
+    venn.zeros = zeros;
+
+    function dot(a, b) {
+        var ret = 0;
+        for (var i = 0; i < a.length; ++i) {
+            ret += a[i] * b[i];
+        }
+        return ret;
+    }
+
+    function norm2(a)  {
+        return Math.sqrt(dot(a, a));
+    }
+    venn.norm2 = norm2;
+
+    function multiplyBy(a, c) {
+        for (var i = 0; i < a.length; ++i) {
+            a[i] *= c;
+        }
+    }
+    venn.multiplyBy = multiplyBy;
+
     function weightedSum(ret, w1, v1, w2, v2) {
         for (var j = 0; j < ret.length; ++j) {
             ret[j] = w1 * v1[j] + w2 * v2[j];
         }
     }
-
 
     /** minimizes a function using the downhill simplex method */
     venn.fmin = function(f, x0, parameters) {
@@ -714,135 +1252,134 @@
                 solution : simplex[0]};
     };
 
-    venn.circlePath = function(x, y, r) {
-        var ret = [];
-        ret.push("\nM", x, y);
-        ret.push("\nm", -r, 0);
-        ret.push("\na", r, r, 0, 1, 0, r *2, 0);
-        ret.push("\na", r, r, 0, 1, 0,-r *2, 0);
-        return ret.join(" ");
-    };
 
-    // inverse of the circlePath function, returns a circle object from an svg path
-    venn.circleFromPath = function(path) {
-        var tokens = path.split(' ');
-        return {'x' : parseFloat(tokens[1]),
-                'y' : parseFloat(tokens[2]),
-                'radius' : -parseFloat(tokens[4])
-                };
-    };
+    venn.minimizeConjugateGradient = function(f, initial, params) {
+        // allocate all memory up front here, keep out of the loop for perfomance
+        // reasons
+        var current = {x: initial.slice(), fx: 0, fxprime: initial.slice()},
+            next = {x: initial.slice(), fx: 0, fxprime: initial.slice()},
+            yk = initial.slice(),
+            pk, temp,
+            a = 1,
+            maxIterations;
 
-    /** returns a svg path of the intersection area of a bunch of circles */
-    venn.intersectionAreaPath = function(circles) {
-        var stats = {};
-        venn.intersectionArea(circles, stats);
-        var arcs = stats.arcs;
+        params = params || {};
+        maxIterations = params.maxIterations || initial.length * 5;
 
-        if (arcs.length === 0) {
-            return "M 0 0";
+        current.fx = f(current.x, current.fxprime);
+        pk = current.fxprime.slice();
+        multiplyBy(pk, -1);
 
-        } else if (arcs.length == 1) {
-            var circle = arcs[0].circle;
-            return venn.circlePath(circle.x, circle.y, circle.radius);
-
-        } else {
-            // draw path around arcs
-            var ret = ["\nM", arcs[0].p2.x, arcs[0].p2.y];
-            for (var i = 0; i < arcs.length; ++i) {
-                var arc = arcs[i], r = arc.circle.radius, wide = arc.width > r;
-                ret.push("\nA", r, r, 0, wide ? 1 : 0, 1,
-                         arc.p1.x, arc.p1.y);
+        for (var i = 0; i < maxIterations; ++i) {
+            if (params.history) {
+                params.history.push({x: current.x.slice(),
+                                     fx: current.fx,
+                                     fxprime: current.fxprime.slice()});
             }
-            return ret.join(" ");
-        }
-    };
 
-    function computeTextCentres(circles, areas, width, height) {
-        // basically just finding the center point of each region by sampling
-        // points in a grid.
-        var points = {};
-
-        var samples = 32;
-        for (var i = 0; i < samples; ++i) {
-            var x = i * width / samples;
-            for (var j = 0; j < samples; ++j) {
-                var y = j * height / samples;
-                var point = {'x' : x, 'y' : y};
-
-                var contained = [];
-                for (var k in circles) {
-                    if (venn.distance(point, circles[k]) <= circles[k].radius) {
-                        contained.push(k);
-                    }
+            a = venn.wolfeLineSearch(f, pk, current, next, a);
+            if (!a) {
+                // faiiled to find point that satifies wolfe conditions.
+                // reset direction for next iteration
+                for (var j = 0; j < pk.length; ++j) {
+                    pk[j] = -1 * current.fxprime[j];
                 }
-                if (!contained.length) {
-                    continue;
-                }
-
-                if (!(contained in points)) {
-                    points[contained] = [];
-                }
-                points[contained].push(point);
-            }
-        }
-
-        function getCircles(area) {
-            return area.map(function(a) { return circles[a]; });
-        }
-
-        var ret = {};
-        for (i = 0; i < areas.length; ++i) {
-            var area = areas[i].sets;
-            if (points.hasOwnProperty(area)) {
-                ret[area] = venn.getCenter(points[area]);
-                // todo: if the point isn't in the area (could not even be a
-                // circle), find the nearest point that is in the region,
-                // extend past that
-            } else if (area.length == 1) {
-                // small/missing intersection area. default to circle centre
-                var circle = circles[area[0]];
-                ret[area] = {'x': circle.x, 'y': circle.y };
-
             } else {
-                var areaStats = {};
-                venn.intersectionArea(getCircles(area), areaStats);
+                // update direction using Polak–Ribiere CG method
+                weightedSum(yk, 1, next.fxprime, -1, current.fxprime);
 
-                if (areaStats.arcs.length === 0) {
-                    if (areas[i].size > 0) {
-                        console.log("WARNING: area " + JSON.stringify(area) + " isn't represented on diagram" );
-                    }
-                    ret[area] = {'x' : 0, 'y' : -1000};
-                } else {
-                    // take average of all the points in the outer perimiter
-                    ret[area] = venn.getCenter(areaStats.arcs.map(function (a) { return a.p1; }));
-                }
+                var delta_k = dot(current.fxprime, current.fxprime),
+                    beta_k = Math.max(0, dot(yk, next.fxprime) / delta_k);
+
+                weightedSum(pk, beta_k, pk, -1, next.fxprime);
+
+                temp = current;
+                current = next;
+                next = temp;
+            }
+
+            if (norm2(current.fxprime) <= 1e-5) {
+                break;
             }
         }
-        return ret;
-    }
 
-    // sorts all areas in the venn diagram, so that
-    // a particular area is on top (relativeTo) - and
-    // all other areas are so that the smallest areas are on top
-    venn.sortAreas = function(div, relativeTo) {
-        // need to sort div's so that Z order is correct
-        div.selectAll("g").sort(function (a, b) {
-            // highest order set intersections first
-            if (a.sets.length != b.sets.length) {
-                return a.sets.length - b.sets.length;
+        if (params.history) {
+            params.history.push({x: current.x.slice(),
+                                 fx: current.fx,
+                                 fxprime: current.fxprime.slice()});
+        }
+
+        return current;
+    };
+
+    var c1 = 1e-6, c2 = 0.1;
+
+    /// searches along line 'pk' for a point that satifies the wolfe conditions
+    /// See 'Numerical Optimization' by Nocedal and Wright p59-60
+    venn.wolfeLineSearch = function(f, pk, current, next, a) {
+        var phi0 = current.fx, phiPrime0 = dot(current.fxprime, pk),
+            phi = phi0, phi_old = phi0,
+            phiPrime = phiPrime0,
+            a0 = 0;
+
+        a = a || 1;
+
+        function zoom(a_lo, a_high, phi_lo) {
+            for (var iteration = 0; iteration < 16; ++iteration) {
+                a = (a_lo + a_high)/2;
+                weightedSum(next.x, 1.0, current.x, a, pk);
+                phi = next.fx = f(next.x, next.fxprime);
+                phiPrime = dot(next.fxprime, pk);
+
+                if ((phi > (phi0 + c1 * a * phiPrime0)) ||
+                    (phi >= phi_lo)) {
+                    a_high = a;
+
+                } else  {
+                    if (Math.abs(phiPrime) <= -c2 * phiPrime0) {
+                        return a;
+                    }
+
+                    if (phiPrime * (a_high - a_lo) >=0) {
+                        a_high = a_lo;
+                    }
+
+                    a_lo = a;
+                    phi_lo = phi;
+                }
             }
 
-            // current element is highest inside its order
-            if ((a == relativeTo) || (b == relativeTo)) {
-                return (a == relativeTo) ? 1 : -1;
+            return 0;
+        }
+
+        for (var iteration = 0; iteration < 10; ++iteration) {
+            weightedSum(next.x, 1.0, current.x, a, pk);
+            phi = next.fx = f(next.x, next.fxprime);
+            phiPrime = dot(next.fxprime, pk);
+            if ((phi > (phi0 + c1 * a * phiPrime0)) ||
+                (iteration && (phi >= phi_old))) {
+                return zoom(a0, a, phi_old);
             }
 
-            // finally by size
-            return b.size - a.size;
-        });
-    }
+            if (Math.abs(phiPrime) <= -c2 * phiPrime0) {
+                return a;
+            }
 
+            if (phiPrime >= 0 ) {
+                return zoom(a, a0, phi);
+            }
 
+            phi_old = phi;
+            a0 = a;
+            a *= 2;
+        }
+
+        return 0;
+    };
+})(venn);
+
+(function(venn) {
+    "use strict";
     var SMALL = 1e-10;
 
     /** Returns the intersection area of a bunch of circles (where each circle
@@ -1064,4 +1601,12 @@
         center.y /= points.length;
         return center;
     };
-}(window.venn = window.venn || {}));
+})(venn);
+
+(function(lib) {
+    if (typeof module === "undefined" || typeof module.exports === "undefined") {
+        window.venn = lib;
+    } else {
+        module.exports = lib;
+    }
+})(venn);

@@ -1,0 +1,503 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>venn.js compared to venneuler</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Ben Frederickson">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.8/c3.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/css/bootstrap.min.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="row">
+        <div class="col-sm-8 col-sm-offset-2">
+            <div class="page-header">
+                <h2> Comparison with VennEuler </h2>
+            </div>
+            <p>
+        <p> The VennEuler approach is described in an  <a href="http://www.cs.uic.edu/~wilkinson/Publications/venneuler.pdf">excellent
+            paper</a> by Leland Wilkinson.  As far as I'm aware this is the
+        best published academic research on laying out area proportional Venn
+        and Euler diagrams.
+
+        <p>This page runs the same <a
+            href="../performance_test.html">performance test</a> on VennEuler that was used to test venn.js. </p>
+
+        <p> Circles are randomly positioned and then the intersection areas
+        are calculated from these circles. Using only the intersection areas,
+        VennEuler has to plot circles whose areas match the input.</p>
+
+        <p>Unfortunately, the VennEuler package doesn't perform all that well
+        on this test. The problem seems to be that while VennEuler frequently
+        gets a solution that is close to being correct, it rarely gets a
+        solution that is close enough for this test to say it succeeded.</p>
+
+        <p> Examples of failure cases are shown first, followed by aggregate
+        graphs showing performance relative to venn.js. Finally a couple of
+        reasons for VennEuler's performance on this test are discussed.
+        <p>
+
+        <hr>
+        <h4> A simple failing example </h4>
+
+        <p>
+        Calling VennEuler with two disjoint sets can produce a diagram where
+        the circles overlap. </p>
+
+        <p>
+        For example, calling VennEuler with two sets of size
+        98 and 48 that have 0 overlap between them produces this diagram:</p>
+
+        <div id="disjoint"></div>
+
+        <p>
+        The overlap is this diagram is small (about 2.2% of the size of the
+        '1' set), but very noticeable. The performance test I'm using here
+        labels this diagram as failing to adequately represent the input since
+        the two sets shouldn't overlap at all.
+        </p>
+
+        <p> However, VennEuler reports that it successfully laid out this
+        diagram. The VennEuler paper defines a 'stress' metric that measures how well
+        the diagram fits the input. Lower values are better, and the paper
+        suggests that if the stress is less than 0.01 then the solution is
+        good enough to use.
+        </p>
+
+        <p>
+        The stress for the above solution above is 0.0001 - 100x lower than
+        the cutoff suggested.  This is because of how that stress metric is
+        calculated: its the sum of squared errors normalized by the sum of
+        squared total areas. Since the circles themselves are included in the
+        total areas, the error in this case is divided by (98<sup>2</sup> +
+        48<sup>2</sup>). Since the error is only ~ 1<sup>2</sup> and that is 
+        divided by the large squared total area - the stress value is very
+        low.
+        </p>
+
+        <!--
+        <p>Wilkinson ran a very similar test on VennEuler, laying out 100
+        random circles and then measuring the stress of the solutions. His
+        average stress was 0.006 which he claimed was a success. However, a
+        stress values of much less than 0.006 can be counted as a failure,
+        <p>
+        Make sure venneuler is running as a webserver on the local machine
+        before attempting to run these tests. Running
+        <code>gradle run</code> in this directory should clone the venneuler
+        repo, and build and run a simple webserver that exposes the venneuler
+        code to javascript on this page.
+        </p>
+        -->
+        <hr>
+        <h4>Other Examples</h4>
+        
+        <p> More examples of individual trials in this test are shown below. While VennEuler occasionally works, it frequently produces solutions that differ by a significant amount from the original. These areas
+        are shown in red if the difference in areas is more than 10%, at which stage we say it failed to reconstruct.
+
+        <div id="venneulerviz">
+            <div>
+                <div class="alert alert-warning" id="warning" style =
+                    "text-align:center;display:none"></div>
+                <div style="display: table; margin: auto">
+                    <button type="button" class="btn btn-default" id="testagain">
+                      <span class="glyphicon glyphicon-refresh"></span> Display Another
+                    </button>
+
+                    <div class="btn-group">
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                      <span id="circle_count_label">4 Circles</span> <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu" role="menu">
+                      <li><a class="circle2">2 Circles</a></li>
+                      <li><a class="circle3">3 Circles</a></li>
+                      <li><a class="circle4">4 Circles</a></li>
+                      <li><a class="circle5">5 Circles</a></li>
+                      <li><a class="circle6">6 Circles</a></li>
+                      <li><a class="circle7">7 Circles</a></li>
+                      <li><a class="circle8">8 Circles</a></li>
+                    </ul>
+                    </div>
+                </div>
+
+
+                <div class="row">
+                    <div id="original" class="col-sm-6">
+                        <h3 style="text-align:center">Original</h3>
+                    </div>
+                    <div id="reconstructed" class="col-sm-6">
+                        <h3 style="text-align:center">Reconstructed</h3>
+                    </div>
+                    <div style="clear:both;"></div>
+                </div>
+ 
+            </div>
+        </div>
+        <p> The results here are precomputed, with random circles being chosen
+        uniformly in (0, 1) with radii uniformly in (.1, .5).  </p>
+    </div>
+        <div id="venneuler">
+            <div class="col-sm-8 col-sm-offset-2">
+                <hr>
+                <h4>Aggregate Performance</h4>
+        <p> Since VennEuler is a java package, precomputed results are shown
+        here. To get results from live code, or to change the test parameters
+        - type 'gradle run' from the same directory as this file. This
+        will launch a simple java server that exposes the layouts from
+        VennEuler to this page over a HTTP JSON api.</p>
+                <div class="alert alert-warning" id="warning" style =
+                    "text-align:center;display:none"></div>
+
+                <h4 id="iterations" style = "text-align:center"></h4>
+                <div style="display: table; margin: auto">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-default pause-button">
+                            <span class="glyphicon glyphicon-play"></span>
+                            <span class="pause-label"> Start test</span>
+                        </button>
+                    </div>
+
+                    <div class="btn-group">
+                       <button type="button" class="btn btn-default
+                           radiusbutton"  data-toggle="modal"
+                           data-target="#radiusModal">
+                            Random Radii in (0.1, 0.5) ...
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-sm-6">
+                <h4 style="text-align:center"> Success Rate </h4>
+                <div id="perfchart"></div>
+            </div>
+            <div class="col-sm-6">
+                <h4 style="text-align:center"> Average Time (ms) </h4>
+                <div id="speedchart"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-8 col-sm-offset-2">
+        <hr>
+        <h4>Discussion</h4>
+    
+        <p>
+        Wilkinson performs a similar test in his paper, and reports positive
+        results with an average stress of .006. Since the performance here
+        seems much worse than whats reported in the paper, I thought I'd
+        quickly list out some of the reasons behind this discrepancy.
+        </p>
+
+        <p>
+        The test here is exceedingly strict and simply an average of
+        a binary success/failure judgement. VennEuler frequently produces
+        diagrams that are very close to being correct, but with a few
+        failing areas. 
+        </p>
+
+        <p> The stress metric that VennEuler reports breaks down in the
+        case of small regions in larger diagrams as seen in the first
+        example. VennEuler uses this stress metric for an early exit
+        performance optimization causing it to potentially stop the
+        optimization process too early in some cases.
+        </p>
+
+        <p> VennEuler does three separate steps to generate the layout. The
+        first step is an initial layout based off of MDS. This is followed by
+        steepest descent on a pseudo-gradient function and
+        then finally coordinate descent directly on the loss function. </p>
+
+        <p> For an initial layout, MDS is better than random - but
+        much worse than the greedy layout I wrote or the <a
+            href="http://www.benfrederickson.com/better-venn-diagrams/">Constrained
+            MDS</a> variant I came up with. VennEuler also computes MDS on Jaccard distance
+        to generate the initial layout, which seems to perform worse than the 
+        Euclidean distance that I used.</p>
+
+        <p>
+        The pseudo-gradient descent step is interesting and actually performs fairly
+        well. I ran some experiments with my own version of it when developing this
+        code. I found it is the second best optimization technique
+        I tried when starting from a random layout. However to get
+        good results I had to run it for many more iterations than in the
+        VennEuler package: VennEuler ran 50 iterations and I was seeing good
+        results at 5000 iterations. This explains why VennEuler seems to get
+        solutions that are mostly right, but frequently contains some small
+        errors. Ultimately the Constrained MDS optimizer I wrote outperformed 
+        this method in terms of both speed and accuracy, so I decided not to
+        use this.</p>
+
+        <p>
+        Finally VennEuler uses coordinate descent to fine tune the results. I
+        don't believe this will perform as well as a fine tuning step as the
+        Nelder-Mead optimizer I'm using though I haven't done any experiments
+        to verify.
+        </p>
+
+        <p> While the running time seems worse in VennEuler,
+        VennEuler scales up better than venn.js does. This is because the
+        number of regions in the venn diagram grows exponentially with the
+        number of sets. VennEuler uses an approximation method for
+        calculating intersection area sizes that mitigates this, while <a
+            href="http://www.benfrederickson.com/calculating-the-intersection-of-3-or-more-circles/">venn.js calculates the sizes of each region directly</a>. While each call is individually
+        fast the sheer number of calls explodes as the number of sets
+        increases, causing venn.js to perform sluggishly. Also worth noting is
+        that timing results reported elsewhere in this repo
+        are done on just the 2-way set intersections: I'm doing all circle
+        intersections here to exactly match the input given to VennEuler.
+        Using only 2-way set intersections leads to identical diagrams in this
+        test, and is roughly a 100x faster on the 8-set case.</p>
+
+        <p> Most of the discrepancy in results is just because this test
+        expects basically exact replicas of the input. VennEuler does a fine
+        job of capturing the global structure, but it frequently lacks the 
+        fine details that are necessary to pass this test.
+        </p>
+    </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="radiusModal" tabindex="-1" role="dialog"
+    aria-labelledby="radiusModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria8hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="radiusModalLabel">Change Circle Radius</h4>
+      </div>
+      <div class="modal-body">
+        <form class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-6 control-label">Minimum Radius</label>
+            <div class="col-sm-6">
+              <input type="number" class="form-control" id="minRadius" value="0.1">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="maxRaduis" class="col-sm-6 control-label">Maximum Radius</label>
+            <div class="col-sm-6">
+              <input type="number" class="form-control" id="maxRadius" value="0.5">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.8/c3.js"></script>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="../../venn.js"></script>
+    <script src="../test_utils.js"></script>
+    <script src="./precomputed.jsonp"></script>
+
+<script>
+
+function vennEulerLayout(intersections) {
+    return $.ajax({
+        type: 'POST',
+        url: 'http://localhost:4242/venneuler',
+        data: JSON.stringify(makeDisjoint(intersections)),
+        dataType:"json"
+    }).then(function (data) {
+        // venneuler returns scaled radius/x/y coords. need to adjust here
+        var scaling = 1;
+        for (var i = 0; i < intersections.length; ++i) {
+            if ((intersections[i].sets.length == 1) &&  
+                (intersections[i].sets[0] == 0)) {
+                scaling = Math.sqrt(intersections[i].size / Math.PI) / data[0].radius;
+                break;
+            }
+        }
+
+        // apply scalling
+        var computed = {};
+        for (var i = 0 ; i < data.length; ++i) {
+            computed[data[i].label] = {
+                x: data[i].x * scaling,
+                y: data[i].y * scaling,
+                radius: data[i].radius * scaling,
+            }
+        };
+        return computed;
+    });
+}
+
+var algorithms = [
+                   new VennAlgorithm('VennEuler', vennEulerLayout),
+                   new VennAlgorithm('venn.js', venn.venn),
+];
+
+var precalcPerf =  {
+    "columns": [
+        [
+            "VennEuler",
+            0.6385542168674698,
+            0.17857142857142858,
+            0.14285714285714285,
+            0.03571428571428571,
+            0,
+            0.012048192771084338,
+            0
+        ],
+        [
+            "venn.js",
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+        ],
+    ]
+};
+
+var precalcSpeed = {
+    "columns": [
+        [
+            "VennEuler",
+            270.25288918071817,
+            477.9406977738047,
+            734.2055212380959,
+            1050.2712577619047,
+            1412.2189399879499,
+            1909.3988429397589,
+            2510.4340089397656
+        ],
+        [
+            "venn.js",
+            0.35371465059894497,
+            0.8620840595243148,
+            4.999302071439171,
+            15.219448630955629,
+            45.71563302409268,
+            158.7735515060243,
+            526.9760998313177
+        ],
+    ]
+};
+
+var perfChart = new createPerformanceChart("#venneuler", algorithms, precalcPerf, precalcSpeed);
+perfChart.intersectionFunction(getAllIntersections);
+
+var minRadius = 0.1, maxRadius = 0.5;
+$('#radiusModal').on('show.bs.modal', function (e) {
+     $(e.currentTarget).find("#minRadius")[0].value = minRadius;
+     $(e.currentTarget).find("#maxRadius")[0].value = maxRadius;
+ });
+
+ $('#radiusModal').on('hide.bs.modal', function (e) {
+    minRadius = Math.max(parseFloat($(e.currentTarget).find("#minRadius")[0].value), 0);
+    maxRadius = Math.min(parseFloat($(e.currentTarget).find("#maxRadius")[0].value), 1);
+
+    if (minRadius > maxRadius) {
+        minRadius = maxRadius;
+    } 
+    $(".radiusbutton").text("Random Radii in (" + minRadius + ", " + maxRadius + ") ..." );
+    perfChart.setRadii(minRadius, maxRadius);
+});
+
+var vennEulerCalls = [];
+function VennEulerViz(div) {
+    var width = div.select("#original")[0][0].offsetWidth - 15;
+    var circleCount = 4, current;
+    var minRadius = .1, maxRadius = .5;
+
+    var currentChart = venn.VennDiagram()
+        .layoutFunction(function (x) { return current; })
+        .normalize(false)
+        .width(width)
+        .height(Math.min(width, 250));
+
+    function randomizePositions() {
+        var original = generateRandomCircles(circleCount, minRadius, maxRadius); 
+        var areas = getAllIntersections(original);
+        setInput(original, areas);
+    }
+
+    function setLayouts(original, areas, computed) {
+        // update original
+        current = original;
+        div.select("#original").datum(areas).call(currentChart);
+        // update reconstructed
+        current = computed;
+        div.select("#reconstructed").datum(areas).call(currentChart);
+        var success = hilightErrors(div, areas, current);
+        div.select("#reconstructed h3").text("Reconstructed: " + (success ? "Success!" : "Failure"));
+        vennEulerCalls.push({original: original, computed: computed});
+    }
+    var lastPrecomputedIndex = 0;
+    
+    function displayPrecomputed(index) {
+        var original = precomputed[index].original;
+        var computed = precomputed[index].computed;
+        var areas = getAllIntersections(original);
+        setLayouts(original, areas, computed); 
+    }
+
+    displayPrecomputed(0);
+
+    function setInput(original, areas) {
+        vennEulerLayout(areas).then(function(computed) {
+            div.select("#warning").style("display", "none");
+            setLayouts(original, areas, computed);
+        }, function(err) {
+            console.log("Failed to venneuler viz");
+            console.log(err);
+//            div.select("#warning").html("<strong>Warning!</strong> Couldn't connect to the VennEuler server. </p>Displaying precomputed data instead. Run the server locally to get real data</p>").style("display", "block");
+
+            while (true) {
+                lastPrecomputedIndex += 1;
+                if (lastPrecomputedIndex >= precomputed.length) {
+                    lastPrecomputedIndex = 0;
+                }
+
+                if (precomputed[lastPrecomputedIndex].original.length == circleCount) {
+                    console.log("displaying " + lastPrecomputedIndex);
+                    break;
+                }
+            }
+            displayPrecomputed(lastPrecomputedIndex);
+        });
+    };
+
+    function setCircles(c) {
+        circleCount = c;
+        div.select("#circle_count_label").text(circleCount + " Circles");
+        randomizePositions(); 
+    }
+
+    this.setCircles = setCircles;
+    this.randomizePositions = randomizePositions;
+    div.select("#testagain").on("click", randomizePositions);
+    div.select(".circle2").on("click", function() { setCircles(2); });
+    div.select(".circle3").on("click", function() { setCircles(3); });
+    div.select(".circle4").on("click", function() { setCircles(4); });
+    div.select(".circle5").on("click", function() { setCircles(5); });
+    div.select(".circle6").on("click", function() { setCircles(6); });
+    div.select(".circle7").on("click", function() { setCircles(7); });
+    div.select(".circle8").on("click", function() { setCircles(8); });
+}
+var venneuler = new VennEulerViz(d3.select("#venneulerviz"))
+
+var width = d3.select("#disjoint")[0][0].offsetWidth - 15;
+var disjointAreas = [{"sets":[0],"size":98},{"sets":[1],"size":48},{"sets":[0,1],"size":0}];
+var disjointSolution = {"0":{"x":13.024995696225679,"y":8.54400374531753,"radius":5.585191925620058},"1":{"x":4.063011794409385,"y":8.54400374531753,"radius":3.908820095223359}}
+
+var disjointChart = venn.VennDiagram()
+    .layoutFunction(function (x) { return disjointSolution; })
+    .width(width)
+    .height(Math.min(width, 250));
+d3.select("#disjoint").datum(disjointAreas).call(disjointChart);
+</script>
+</html>
