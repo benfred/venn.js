@@ -1,0 +1,24 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+}
+
+apply plugin: 'java'
+
+repositories {
+    mavenCentral()
+    flatDir {
+        dirs '.'
+    }
+}
+
+dependencies {
+   compile 'com.google.code.gson:gson:2.2.4'
+   compile name: 'venneuler'
+}
+
+task run(type: JavaExec, dependsOn: 'jar') {
+    main = 'VennEulerServer'
+    classpath=sourceSets.main.runtimeClasspath
+}

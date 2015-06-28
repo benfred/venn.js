@@ -1,4 +1,4 @@
-var venn = venn || {};
+var venn = venn || {'version' : '0.2'};
 
 (function(venn) {
     "use strict";
@@ -257,7 +257,7 @@ var venn = venn || {};
         return margin;
     }
 
-    // compute the center of some circles by maximizing the margin of 
+    // compute the center of some circles by maximizing the margin of
     // the center point relative to the circles (interior) after subtracting
     // nearby circles (exterior)
     function computeTextCentre(interior, exterior) {
@@ -426,7 +426,7 @@ var venn = venn || {};
         parameters = parameters || {};
         parameters.maxIterations = parameters.maxIterations || 500;
         var lossFunction = parameters.lossFunction || venn.lossFunction;
-        var initialLayout = parameters.initialLayout || venn.greedyLayout;
+        var initialLayout = parameters.initialLayout || venn.bestInitialLayout;
         var fmin = parameters.fmin || venn.fmin;
 
         // initial layout is done greedily
@@ -471,7 +471,7 @@ var venn = venn || {};
 
         return circles;
     };
-    
+
     var SMALL = 1e-10;
 
     /** Returns the distance necessary for two circles of radius r1 + r2 to
@@ -487,24 +487,17 @@ var venn = venn || {};
         }, 0, r1 + r2);
     };
 
-    /// gets a matrix of euclidean distances between all sets in venn diagram
-    venn.getDistanceMatrix = function(areas, sets, setids) {
+    /// Returns two matrices, one of the euclidean distances between the sets
+    /// and the other indicating if there are subset or disjoint set relationships
+    venn.getDistanceMatrices = function(areas, sets, setids) {
         // initialize an empty distance matrix between all the points
-        var distances = [];
-        for (var i = 0; i < sets.length; ++i) {
-            distances.push([]);
-            for (var j = 0; j < sets.length; ++j) {
-                distances[i].push(0);
-            }
-        }
+        var distances = venn.zerosM(sets.length, sets.length),
+            constraints = venn.zerosM(sets.length, sets.length);
 
-        // compute distances between all the points
-        for (i = 0; i < areas.length; ++i) {
-            var current = areas[i];
-            if (current.sets.length !== 2) {
-                continue;
-            }
-
+        // compute required distances between all the sets such that
+        // the areas match
+        areas.filter(function(x) { return x.sets.length == 2; })
+            .map(function(current) {
             var left = setids[current.sets[0]],
                 right = setids[current.sets[1]],
                 r1 = Math.sqrt(sets[left].size / Math.PI),
@@ -512,8 +505,134 @@ var venn = venn || {};
                 distance = venn.distanceFromIntersectArea(r1, r2, current.size);
 
             distances[left][right] = distances[right][left] = distance;
+
+            // also update constraints to indicate if its a subset or disjoint
+            // relationship
+            var c = 0;
+            if (current.size + 1e-10 >= Math.min(sets[left].size,
+                                                 sets[right].size)) {
+                c = 1;
+            } else if (current.size <= 1e-10) {
+                c = -1;
+            }
+            constraints[left][right] = constraints[right][left] = c;
+        });
+
+        return {distances: distances, constraints: constraints};
+    };
+
+    /// computes the gradient and loss simulatenously for our constrained MDS optimizer
+    function constrainedMDSGradient(x, fxprime, distances, constraints) {
+        var loss = 0, i;
+        for (i = 0; i < fxprime.length; ++i) {
+            fxprime[i] = 0;
         }
-        return distances;
+
+        for (i = 0; i < distances.length; ++i) {
+            var xi = x[2 * i], yi = x[2 * i + 1];
+            for (var j = i + 1; j < distances.length; ++j) {
+                var xj = x[2 * j], yj = x[2 * j + 1],
+                    dij = distances[i][j],
+                    constraint = constraints[i][j];
+
+                var squaredDistance = (xj - xi) * (xj - xi) + (yj - yi) * (yj - yi),
+                    distance = Math.sqrt(squaredDistance),
+                    delta = squaredDistance - dij * dij;
+
+                if (((constraint > 0) && (distance <= dij)) ||
+                    ((constraint < 0) && (distance >= dij))) {
+                    continue;
+                }
+
+                loss += 2 * delta * delta;
+
+                fxprime[2*i]     += 4 * delta * (xi - xj);
+                fxprime[2*i + 1] += 4 * delta * (yi - yj);
+
+                fxprime[2*j]     += 4 * delta * (xj - xi);
+                fxprime[2*j + 1] += 4 * delta * (yj - yi);
+            }
+        }
+        return loss;
+    }
+
+    /// takes the best working variant of either constrained MDS or greedy
+    venn.bestInitialLayout = function(areas, params) {
+        var initial = venn.greedyLayout(areas, params);
+
+        // greedylayout is sufficient for all 2/3 circle cases. try out
+        // constrained MDS for higher order problems, take its output
+        // if it outperforms. (greedy is aesthetically better on 2/3 circles
+        // since it axis aligns)
+        if (areas.length >= 8) {
+            var constrained  = venn.constrainedMDSLayout(areas, params),
+                constrainedLoss = venn.lossFunction(constrained, areas),
+                greedyLoss = venn.lossFunction(initial, areas);
+
+            if (constrainedLoss + 1e-8 < greedyLoss) {
+                initial = constrained;
+            }
+        }
+        return initial;
+    };
+
+    /// use the constrained MDS variant to generate an initial layout
+    venn.constrainedMDSLayout = function(areas, params) {
+        params = params || {};
+        var restarts = params.restarts || 10;
+
+        // bidirectionally map sets to a rowid  (so we can create a matrix)
+        var sets = [], setids = {}, i;
+        for (i = 0; i < areas.length; ++i ) {
+            var area = areas[i];
+            if (area.sets.length == 1) {
+                setids[area.sets[0]] = sets.length;
+                sets.push(area);
+            }
+        }
+
+        var matrices = venn.getDistanceMatrices(areas, sets, setids),
+            distances = matrices.distances,
+            constraints = matrices.constraints;
+
+        // keep distances bounded, things get messed up otherwise.
+        // TODO: proper preconditioner?
+        var norm = venn.norm2(distances.map(venn.norm2))/(distances.length);
+        distances = distances.map(function (row) {
+            return row.map(function (value) { return value / norm; });});
+
+        var obj = function(x, fxprime) {
+            return constrainedMDSGradient(x, fxprime, distances, constraints);
+        };
+
+        var best, current;
+        for (i = 0; i < restarts; ++i) {
+            var initial = venn.zeros(distances.length*2).map(Math.random);
+
+            current = venn.minimizeConjugateGradient(obj, initial, params);
+            if (!best || (current.fx < best.fx)) {
+                best = current;
+            }
+        }
+        var positions = best.x;
+
+        // translate rows back to (x,y,radius) coordinates
+        var circles = {};
+        for (i = 0; i < sets.length; ++i) {
+            var set = sets[i];
+            circles[set.sets[0]] = {
+                x: positions[2*i] * norm,
+                y: positions[2*i + 1] * norm,
+                radius:  Math.sqrt(set.size / Math.PI)
+            };
+        }
+
+        if (params.history) {
+            for (i = 0; i < params.history.length; ++i) {
+                venn.multiplyBy(params.history[i].x, norm);
+            }
+        }
+        return circles;
     };
 
     /** Lays out a Venn diagram greedily, going from most overlapped sets to
@@ -588,7 +707,7 @@ var venn = venn || {};
 
         // get distances between all points. TODO, necessary?
         // answer: probably not
-        // var distances = venn.getDistanceMatrix(circles, areas);
+        // var distances = venn.getDistanceMatrices(circles, areas).distances;
         for (i = 1; i < mostOverlapped.length; ++i) {
             var setIndex = mostOverlapped[i].set,
                 overlap = setOverlaps[setIndex].filter(isPositioned);
@@ -661,7 +780,7 @@ var venn = venn || {};
         }
 
         // get the distance matrix, and use to position sets
-        var distances = venn.getDistanceMatrix(areas, sets, setids);
+        var distances = venn.getDistanceMatrices(areas, sets, setids).distances;
         var positions = mds.classic(distances);
 
         // translate rows back to (x,y,radius) coordinates
@@ -977,6 +1096,33 @@ var venn = venn || {};
         return a + delta;
     };
 
+    // need some basic operations on vectors, rather than adding a dependency,
+    // just define here
+    function zeros(x) { var r = new Array(x); for (var i = 0; i < x; ++i) { r[i] = 0; } return r; }
+    function zerosM(x,y) { return zeros(x).map(function() { return zeros(y); }); }
+    venn.zerosM = zerosM;
+    venn.zeros = zeros;
+
+    function dot(a, b) {
+        var ret = 0;
+        for (var i = 0; i < a.length; ++i) {
+            ret += a[i] * b[i];
+        }
+        return ret;
+    }
+
+    function norm2(a)  {
+        return Math.sqrt(dot(a, a));
+    }
+    venn.norm2 = norm2;
+
+    function multiplyBy(a, c) {
+        for (var i = 0; i < a.length; ++i) {
+            a[i] *= c;
+        }
+    }
+    venn.multiplyBy = multiplyBy;
+
     function weightedSum(ret, w1, v1, w2, v2) {
         for (var j = 0; j < ret.length; ++j) {
             ret[j] = w1 * v1[j] + w2 * v2[j];
@@ -1104,6 +1250,131 @@ var venn = venn || {};
         simplex.sort(sortOrder);
         return {f : simplex[0].fx,
                 solution : simplex[0]};
+    };
+
+
+    venn.minimizeConjugateGradient = function(f, initial, params) {
+        // allocate all memory up front here, keep out of the loop for perfomance
+        // reasons
+        var current = {x: initial.slice(), fx: 0, fxprime: initial.slice()},
+            next = {x: initial.slice(), fx: 0, fxprime: initial.slice()},
+            yk = initial.slice(),
+            pk, temp,
+            a = 1,
+            maxIterations;
+
+        params = params || {};
+        maxIterations = params.maxIterations || initial.length * 5;
+
+        current.fx = f(current.x, current.fxprime);
+        pk = current.fxprime.slice();
+        multiplyBy(pk, -1);
+
+        for (var i = 0; i < maxIterations; ++i) {
+            if (params.history) {
+                params.history.push({x: current.x.slice(),
+                                     fx: current.fx,
+                                     fxprime: current.fxprime.slice()});
+            }
+
+            a = venn.wolfeLineSearch(f, pk, current, next, a);
+            if (!a) {
+                // faiiled to find point that satifies wolfe conditions.
+                // reset direction for next iteration
+                for (var j = 0; j < pk.length; ++j) {
+                    pk[j] = -1 * current.fxprime[j];
+                }
+            } else {
+                // update direction using Polak–Ribiere CG method
+                weightedSum(yk, 1, next.fxprime, -1, current.fxprime);
+
+                var delta_k = dot(current.fxprime, current.fxprime),
+                    beta_k = Math.max(0, dot(yk, next.fxprime) / delta_k);
+
+                weightedSum(pk, beta_k, pk, -1, next.fxprime);
+
+                temp = current;
+                current = next;
+                next = temp;
+            }
+
+            if (norm2(current.fxprime) <= 1e-5) {
+                break;
+            }
+        }
+
+        if (params.history) {
+            params.history.push({x: current.x.slice(),
+                                 fx: current.fx,
+                                 fxprime: current.fxprime.slice()});
+        }
+
+        return current;
+    };
+
+    var c1 = 1e-6, c2 = 0.1;
+
+    /// searches along line 'pk' for a point that satifies the wolfe conditions
+    /// See 'Numerical Optimization' by Nocedal and Wright p59-60
+    venn.wolfeLineSearch = function(f, pk, current, next, a) {
+        var phi0 = current.fx, phiPrime0 = dot(current.fxprime, pk),
+            phi = phi0, phi_old = phi0,
+            phiPrime = phiPrime0,
+            a0 = 0;
+
+        a = a || 1;
+
+        function zoom(a_lo, a_high, phi_lo) {
+            for (var iteration = 0; iteration < 16; ++iteration) {
+                a = (a_lo + a_high)/2;
+                weightedSum(next.x, 1.0, current.x, a, pk);
+                phi = next.fx = f(next.x, next.fxprime);
+                phiPrime = dot(next.fxprime, pk);
+
+                if ((phi > (phi0 + c1 * a * phiPrime0)) ||
+                    (phi >= phi_lo)) {
+                    a_high = a;
+
+                } else  {
+                    if (Math.abs(phiPrime) <= -c2 * phiPrime0) {
+                        return a;
+                    }
+
+                    if (phiPrime * (a_high - a_lo) >=0) {
+                        a_high = a_lo;
+                    }
+
+                    a_lo = a;
+                    phi_lo = phi;
+                }
+            }
+
+            return 0;
+        }
+
+        for (var iteration = 0; iteration < 10; ++iteration) {
+            weightedSum(next.x, 1.0, current.x, a, pk);
+            phi = next.fx = f(next.x, next.fxprime);
+            phiPrime = dot(next.fxprime, pk);
+            if ((phi > (phi0 + c1 * a * phiPrime0)) ||
+                (iteration && (phi >= phi_old))) {
+                return zoom(a0, a, phi_old);
+            }
+
+            if (Math.abs(phiPrime) <= -c2 * phiPrime0) {
+                return a;
+            }
+
+            if (phiPrime >= 0 ) {
+                return zoom(a, a0, phi);
+            }
+
+            phi_old = phi;
+            a0 = a;
+            a *= 2;
+        }
+
+        return 0;
     };
 })(venn);
 
@@ -1337,5 +1608,5 @@ var venn = venn || {};
         window.venn = lib;
     } else {
         module.exports = lib;
-    } 
+    }
 })(venn);

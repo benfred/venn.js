@@ -255,7 +255,7 @@
         return margin;
     }
 
-    // compute the center of some circles by maximizing the margin of 
+    // compute the center of some circles by maximizing the margin of
     // the center point relative to the circles (interior) after subtracting
     // nearby circles (exterior)
     function computeTextCentre(interior, exterior) {

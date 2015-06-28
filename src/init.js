@@ -1,1 +1,1 @@
-var venn = venn || {};
+var venn = venn || {'version' : '0.2'};

@@ -33,6 +33,33 @@
         return a + delta;
     };
 
+    // need some basic operations on vectors, rather than adding a dependency,
+    // just define here
+    function zeros(x) { var r = new Array(x); for (var i = 0; i < x; ++i) { r[i] = 0; } return r; }
+    function zerosM(x,y) { return zeros(x).map(function() { return zeros(y); }); }
+    venn.zerosM = zerosM;
+    venn.zeros = zeros;
+
+    function dot(a, b) {
+        var ret = 0;
+        for (var i = 0; i < a.length; ++i) {
+            ret += a[i] * b[i];
+        }
+        return ret;
+    }
+
+    function norm2(a)  {
+        return Math.sqrt(dot(a, a));
+    }
+    venn.norm2 = norm2;
+
+    function multiplyBy(a, c) {
+        for (var i = 0; i < a.length; ++i) {
+            a[i] *= c;
+        }
+    }
+    venn.multiplyBy = multiplyBy;
+
     function weightedSum(ret, w1, v1, w2, v2) {
         for (var j = 0; j < ret.length; ++j) {
             ret[j] = w1 * v1[j] + w2 * v2[j];
@@ -160,5 +187,130 @@
         simplex.sort(sortOrder);
         return {f : simplex[0].fx,
                 solution : simplex[0]};
+    };
+
+
+    venn.minimizeConjugateGradient = function(f, initial, params) {
+        // allocate all memory up front here, keep out of the loop for perfomance
+        // reasons
+        var current = {x: initial.slice(), fx: 0, fxprime: initial.slice()},
+            next = {x: initial.slice(), fx: 0, fxprime: initial.slice()},
+            yk = initial.slice(),
+            pk, temp,
+            a = 1,
+            maxIterations;
+
+        params = params || {};
+        maxIterations = params.maxIterations || initial.length * 5;
+
+        current.fx = f(current.x, current.fxprime);
+        pk = current.fxprime.slice();
+        multiplyBy(pk, -1);
+
+        for (var i = 0; i < maxIterations; ++i) {
+            if (params.history) {
+                params.history.push({x: current.x.slice(),
+                                     fx: current.fx,
+                                     fxprime: current.fxprime.slice()});
+            }
+
+            a = venn.wolfeLineSearch(f, pk, current, next, a);
+            if (!a) {
+                // faiiled to find point that satifies wolfe conditions.
+                // reset direction for next iteration
+                for (var j = 0; j < pk.length; ++j) {
+                    pk[j] = -1 * current.fxprime[j];
+                }
+            } else {
+                // update direction using Polak–Ribiere CG method
+                weightedSum(yk, 1, next.fxprime, -1, current.fxprime);
+
+                var delta_k = dot(current.fxprime, current.fxprime),
+                    beta_k = Math.max(0, dot(yk, next.fxprime) / delta_k);
+
+                weightedSum(pk, beta_k, pk, -1, next.fxprime);
+
+                temp = current;
+                current = next;
+                next = temp;
+            }
+
+            if (norm2(current.fxprime) <= 1e-5) {
+                break;
+            }
+        }
+
+        if (params.history) {
+            params.history.push({x: current.x.slice(),
+                                 fx: current.fx,
+                                 fxprime: current.fxprime.slice()});
+        }
+
+        return current;
+    };
+
+    var c1 = 1e-6, c2 = 0.1;
+
+    /// searches along line 'pk' for a point that satifies the wolfe conditions
+    /// See 'Numerical Optimization' by Nocedal and Wright p59-60
+    venn.wolfeLineSearch = function(f, pk, current, next, a) {
+        var phi0 = current.fx, phiPrime0 = dot(current.fxprime, pk),
+            phi = phi0, phi_old = phi0,
+            phiPrime = phiPrime0,
+            a0 = 0;
+
+        a = a || 1;
+
+        function zoom(a_lo, a_high, phi_lo) {
+            for (var iteration = 0; iteration < 16; ++iteration) {
+                a = (a_lo + a_high)/2;
+                weightedSum(next.x, 1.0, current.x, a, pk);
+                phi = next.fx = f(next.x, next.fxprime);
+                phiPrime = dot(next.fxprime, pk);
+
+                if ((phi > (phi0 + c1 * a * phiPrime0)) ||
+                    (phi >= phi_lo)) {
+                    a_high = a;
+
+                } else  {
+                    if (Math.abs(phiPrime) <= -c2 * phiPrime0) {
+                        return a;
+                    }
+
+                    if (phiPrime * (a_high - a_lo) >=0) {
+                        a_high = a_lo;
+                    }
+
+                    a_lo = a;
+                    phi_lo = phi;
+                }
+            }
+
+            return 0;
+        }
+
+        for (var iteration = 0; iteration < 10; ++iteration) {
+            weightedSum(next.x, 1.0, current.x, a, pk);
+            phi = next.fx = f(next.x, next.fxprime);
+            phiPrime = dot(next.fxprime, pk);
+            if ((phi > (phi0 + c1 * a * phiPrime0)) ||
+                (iteration && (phi >= phi_old))) {
+                return zoom(a0, a, phi_old);
+            }
+
+            if (Math.abs(phiPrime) <= -c2 * phiPrime0) {
+                return a;
+            }
+
+            if (phiPrime >= 0 ) {
+                return zoom(a, a0, phi);
+            }
+
+            phi_old = phi;
+            a0 = a;
+            a *= 2;
+        }
+
+        return 0;
     };
 })(venn);

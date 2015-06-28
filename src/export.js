@@ -3,5 +3,5 @@
         window.venn = lib;
     } else {
         module.exports = lib;
-    } 
+    }
 })(venn);

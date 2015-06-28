@@ -7,7 +7,7 @@
         parameters = parameters || {};
         parameters.maxIterations = parameters.maxIterations || 500;
         var lossFunction = parameters.lossFunction || venn.lossFunction;
-        var initialLayout = parameters.initialLayout || venn.greedyLayout;
+        var initialLayout = parameters.initialLayout || venn.bestInitialLayout;
         var fmin = parameters.fmin || venn.fmin;
 
         // initial layout is done greedily
@@ -52,7 +52,7 @@
 
         return circles;
     };
-    
+
     var SMALL = 1e-10;
 
     /** Returns the distance necessary for two circles of radius r1 + r2 to
@@ -68,24 +68,17 @@
         }, 0, r1 + r2);
     };
 
-    /// gets a matrix of euclidean distances between all sets in venn diagram
-    venn.getDistanceMatrix = function(areas, sets, setids) {
+    /// Returns two matrices, one of the euclidean distances between the sets
+    /// and the other indicating if there are subset or disjoint set relationships
+    venn.getDistanceMatrices = function(areas, sets, setids) {
         // initialize an empty distance matrix between all the points
-        var distances = [];
-        for (var i = 0; i < sets.length; ++i) {
-            distances.push([]);
-            for (var j = 0; j < sets.length; ++j) {
-                distances[i].push(0);
-            }
-        }
+        var distances = venn.zerosM(sets.length, sets.length),
+            constraints = venn.zerosM(sets.length, sets.length);
 
-        // compute distances between all the points
-        for (i = 0; i < areas.length; ++i) {
-            var current = areas[i];
-            if (current.sets.length !== 2) {
-                continue;
-            }
-
+        // compute required distances between all the sets such that
+        // the areas match
+        areas.filter(function(x) { return x.sets.length == 2; })
+            .map(function(current) {
             var left = setids[current.sets[0]],
                 right = setids[current.sets[1]],
                 r1 = Math.sqrt(sets[left].size / Math.PI),
@@ -93,8 +86,134 @@
                 distance = venn.distanceFromIntersectArea(r1, r2, current.size);
 
             distances[left][right] = distances[right][left] = distance;
+
+            // also update constraints to indicate if its a subset or disjoint
+            // relationship
+            var c = 0;
+            if (current.size + 1e-10 >= Math.min(sets[left].size,
+                                                 sets[right].size)) {
+                c = 1;
+            } else if (current.size <= 1e-10) {
+                c = -1;
+            }
+            constraints[left][right] = constraints[right][left] = c;
+        });
+
+        return {distances: distances, constraints: constraints};
+    };
+
+    /// computes the gradient and loss simulatenously for our constrained MDS optimizer
+    function constrainedMDSGradient(x, fxprime, distances, constraints) {
+        var loss = 0, i;
+        for (i = 0; i < fxprime.length; ++i) {
+            fxprime[i] = 0;
         }
-        return distances;
+
+        for (i = 0; i < distances.length; ++i) {
+            var xi = x[2 * i], yi = x[2 * i + 1];
+            for (var j = i + 1; j < distances.length; ++j) {
+                var xj = x[2 * j], yj = x[2 * j + 1],
+                    dij = distances[i][j],
+                    constraint = constraints[i][j];
+
+                var squaredDistance = (xj - xi) * (xj - xi) + (yj - yi) * (yj - yi),
+                    distance = Math.sqrt(squaredDistance),
+                    delta = squaredDistance - dij * dij;
+
+                if (((constraint > 0) && (distance <= dij)) ||
+                    ((constraint < 0) && (distance >= dij))) {
+                    continue;
+                }
+
+                loss += 2 * delta * delta;
+
+                fxprime[2*i]     += 4 * delta * (xi - xj);
+                fxprime[2*i + 1] += 4 * delta * (yi - yj);
+
+                fxprime[2*j]     += 4 * delta * (xj - xi);
+                fxprime[2*j + 1] += 4 * delta * (yj - yi);
+            }
+        }
+        return loss;
+    }
+
+    /// takes the best working variant of either constrained MDS or greedy
+    venn.bestInitialLayout = function(areas, params) {
+        var initial = venn.greedyLayout(areas, params);
+
+        // greedylayout is sufficient for all 2/3 circle cases. try out
+        // constrained MDS for higher order problems, take its output
+        // if it outperforms. (greedy is aesthetically better on 2/3 circles
+        // since it axis aligns)
+        if (areas.length >= 8) {
+            var constrained  = venn.constrainedMDSLayout(areas, params),
+                constrainedLoss = venn.lossFunction(constrained, areas),
+                greedyLoss = venn.lossFunction(initial, areas);
+
+            if (constrainedLoss + 1e-8 < greedyLoss) {
+                initial = constrained;
+            }
+        }
+        return initial;
+    };
+
+    /// use the constrained MDS variant to generate an initial layout
+    venn.constrainedMDSLayout = function(areas, params) {
+        params = params || {};
+        var restarts = params.restarts || 10;
+
+        // bidirectionally map sets to a rowid  (so we can create a matrix)
+        var sets = [], setids = {}, i;
+        for (i = 0; i < areas.length; ++i ) {
+            var area = areas[i];
+            if (area.sets.length == 1) {
+                setids[area.sets[0]] = sets.length;
+                sets.push(area);
+            }
+        }
+
+        var matrices = venn.getDistanceMatrices(areas, sets, setids),
+            distances = matrices.distances,
+            constraints = matrices.constraints;
+
+        // keep distances bounded, things get messed up otherwise.
+        // TODO: proper preconditioner?
+        var norm = venn.norm2(distances.map(venn.norm2))/(distances.length);
+        distances = distances.map(function (row) {
+            return row.map(function (value) { return value / norm; });});
+
+        var obj = function(x, fxprime) {
+            return constrainedMDSGradient(x, fxprime, distances, constraints);
+        };
+
+        var best, current;
+        for (i = 0; i < restarts; ++i) {
+            var initial = venn.zeros(distances.length*2).map(Math.random);
+
+            current = venn.minimizeConjugateGradient(obj, initial, params);
+            if (!best || (current.fx < best.fx)) {
+                best = current;
+            }
+        }
+        var positions = best.x;
+
+        // translate rows back to (x,y,radius) coordinates
+        var circles = {};
+        for (i = 0; i < sets.length; ++i) {
+            var set = sets[i];
+            circles[set.sets[0]] = {
+                x: positions[2*i] * norm,
+                y: positions[2*i + 1] * norm,
+                radius:  Math.sqrt(set.size / Math.PI)
+            };
+        }
+
+        if (params.history) {
+            for (i = 0; i < params.history.length; ++i) {
+                venn.multiplyBy(params.history[i].x, norm);
+            }
+        }
+        return circles;
     };
 
     /** Lays out a Venn diagram greedily, going from most overlapped sets to
@@ -169,7 +288,7 @@
 
         // get distances between all points. TODO, necessary?
         // answer: probably not
-        // var distances = venn.getDistanceMatrix(circles, areas);
+        // var distances = venn.getDistanceMatrices(circles, areas).distances;
         for (i = 1; i < mostOverlapped.length; ++i) {
             var setIndex = mostOverlapped[i].set,
                 overlap = setOverlaps[setIndex].filter(isPositioned);
@@ -242,7 +361,7 @@
         }
 
         // get the distance matrix, and use to position sets
-        var distances = venn.getDistanceMatrix(areas, sets, setids);
+        var distances = venn.getDistanceMatrices(areas, sets, setids).distances;
         var positions = mds.classic(distances);
 
         // translate rows back to (x,y,radius) coordinates

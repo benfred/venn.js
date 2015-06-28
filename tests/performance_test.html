@@ -1,0 +1,200 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>venn.js perfomance/accuracy tests</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Ben Frederickson">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.8/c3.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/css/bootstrap.min.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="row">
+        <div class="col-sm-8 col-sm-offset-2">
+            <div class="page-header">
+                <h3> venn.js performance tests</h3>
+            </div>
+            <p>This page tests out a couple different venn diagram layout
+            algorithms for accuracy and performance on random data.</p>
+
+            <p>Circles are randomly positioned and then the intersection
+            areas are calculated from these circles. Using only the intersection areas,
+            each algorithm has to lay out a venn diagram that is isomorphic to 
+            the original input.</p>
+
+            <p>The graphs below measure the percentage of the time the
+            algorithm successfully reconstructs the input, and how long it
+            takes to do so.</p>
+        </div>
+        
+        <div id="versions">
+            <div class="col-sm-8 col-sm-offset-2">
+                <hr>
+                <h3 style = " text-align:center"> Performance by Version </h3>
+                <h4 id="iterations" style = "text-align:center"></h4>
+                <div style="display: table; margin: auto">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-default pause-button">
+                            <span class="glyphicon glyphicon-play"></span>
+                            <span class="pause-label"> Start test</span>
+                        </button>
+                    </div>
+                    <div class="btn-group">
+                       <button type="button" class="btn btn-default
+                           radiusbutton"  data-toggle="modal"
+                           data-target="#radiusModal">
+                            Random Radii in (0.1, 0.5) ...
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-sm-6">
+                <h4 style="text-align:center"> Success Rate </h4>
+                <div id="perfchart"></div>
+            </div>
+            <div class="col-sm-6">
+                <h4 style="text-align:center"> Average Time (ms) </h4>
+                <div id="speedchart"></div>
+            </div>
+        </div>
+
+        <div class="col-sm-8 col-sm-offset-2">
+        <hr>
+        <p>These charts show the difference in performance from the original version 
+        compared with the <a href="http://www.benfrederickson.com/better-venn-diagrams/">algorithm
+            improvements detailed in this post.</a></p>
+
+            <p>A failure in this case is if any laid out area differs by a
+            perceptible amount from the input: I chose a 10% difference in
+            size to be perceptible. </p>
+
+            <p>The difficulty in this test is strongly dependant on how the
+            circles are positioned randomly. I'm setting the centres of each
+            circle to be in randomly (0, 1) and then setting the radii to be
+            in (0.1, 0.5). This can be made easier by setting the radii to (0.5, 1.0) or
+            harder by setting to (0.1, 0.3) for instance.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="radiusModal" tabindex="-1" role="dialog"
+    aria-labelledby="radiusModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria8hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="radiusModalLabel">Change Circle Radius</h4>
+      </div>
+      <div class="modal-body">
+        <form class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-6 control-label">Minimum Radius</label>
+            <div class="col-sm-6">
+              <input type="number" class="form-control" id="minRadius" placeholder="Password" value="0.1">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="maxRaduis" class="col-sm-6 control-label">Maximum Radius</label>
+            <div class="col-sm-6">
+              <input type="number" class="form-control" id="maxRadius"
+              placeholder="Password" value="0.5">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.8/c3.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+    <script src="../venn.js"></script>
+    <script src="./test_utils.js"></script>
+    <script>
+
+        var versionAlgorithms = [
+                           new VennAlgorithm('v0.1', function(x) { return venn.venn(x, {initialLayout:venn.greedyLayout})}),
+                           new VennAlgorithm('v0.2', venn.venn),
+                           ];
+
+
+        var versionPerf = {
+                "columns": [
+                    [
+                        "v0.1",
+                        1,
+                        1,
+                        0.9855072463768116,
+                        0.9389233954451346,
+                        0.8835403726708074,
+                        0.8162525879917184,
+                        0.7883022774327122
+                    ],
+                    [
+                        "v0.2",
+                        1,
+                        1,
+                        0.9994824016563147,
+                        0.9984472049689441,
+                        0.9963768115942029,
+                        0.9953416149068323,
+                        0.9963768115942029
+                    ]
+                ]
+            };
+
+        var versionSpeed = {
+                "columns": [
+                    [
+                        "v0.1",
+                        0.09748416718426144,
+                        0.18906734834368452,
+                        0.37196818840598345,
+                        0.6863963250518602,
+                        1.2363631086960354,
+                        2.030097275362176,
+                        3.111821387681363
+                    ],
+                    [
+                        "v0.2",
+                        0.06279080175975398,
+                        0.14820674327136105,
+                        0.7884855647003195,
+                        1.3871097225675133,
+                        2.3155972013454607,
+                        3.5198467091096517,
+                        5.150496077639739
+                    ]
+                ]
+            };
+
+        var versionChart = new createPerformanceChart("#versions", versionAlgorithms, versionPerf, versionSpeed)
+
+        var minRadius = 0.1, maxRadius = 0.5;
+        $('#radiusModal').on('show.bs.modal', function (e) {
+             $(e.currentTarget).find("#minRadius")[0].value = minRadius;
+             $(e.currentTarget).find("#maxRadius")[0].value = maxRadius;
+         });
+
+         $('#radiusModal').on('hide.bs.modal', function (e) {
+            minRadius = Math.max(parseFloat($(e.currentTarget).find("#minRadius")[0].value), 0);
+            maxRadius = Math.min(parseFloat($(e.currentTarget).find("#maxRadius")[0].value), 1);
+
+            if (minRadius > maxRadius) {
+                minRadius = maxRadius;
+            } 
+            $(".radiusbutton").text("Random Radii in (" + minRadius + ", " + maxRadius + ") ..." );
+            versionChart.setRadii(minRadius, maxRadius);
+        });
+    </script>
+</html>

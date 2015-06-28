@@ -14,7 +14,7 @@
             tolerance = tolerance || 1e-5;
             ok(Math.abs(left - right) < tolerance,
                message + ": " + left + " ~== " + right);
-        }
+           }
 
         function lessThan(left, right, message) {
             message = message || "lessThan";
@@ -73,6 +73,16 @@
             // minimize simple 1 diminesial quadratic
             var loss = function(values) { return (values[0] - 10) * (values[0] - 10); }
             var solution = venn.fmin(loss, [0], {minErrorDelta:1e-10}).solution;
+            nearlyEqual(solution[0], 10, 1e-10);
+        });
+
+        test("minimizeConjugateGradient", function() {
+            // minimize simple 1 diminesial quadratic
+            var loss = function(x, xprime) { 
+                xprime[0] = 2 * (x[0] - 10);
+                return (x[0] - 10) * (x[0] - 10); 
+            }
+            var solution = venn.minimizeConjugateGradient(loss, [0]).x;
             nearlyEqual(solution[0], 10, 1e-10);
         });
 
@@ -211,7 +221,6 @@
                 area = venn.intersectionArea(circles);
 
             ok(Math.abs(area - 0.0008914) < 0.0001, area);
-
         });
 
         test("computeTextCentre", function() {
