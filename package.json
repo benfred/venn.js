@@ -1,12 +1,36 @@
 {
   "name": "venn.js",
-  "version": "0.2.0",
-  "author": "Ben Frederickson",
+  "version": "0.2.1",
+  "author": "Ben Frederickson <ben@benfrederickson.com> (http:/www.benfrederickson.com)",
+  "files": [
+    "venn.min.js",
+    "venn.js"
+  ],
+  "url": "https://github.com/benfred/venn.js/issues",
   "devDependencies": {
     "grunt": "~0.4.5",
     "grunt-contrib-uglify": "~0.9.1",
     "grunt-contrib-concat": "~0.5.1",
     "grunt-contrib-qunit": "~0.7.0",
     "grunt-contrib-jshint": "~0.11.2"
-  }
+  },
+  "description": "Area Proportional Venn and Euler Diagrams",
+  "main": "venn.js",
+  "directories": {
+    "example": "examples",
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benfred/venn.js.git"
+  },
+  "keywords": [
+    "Venn",
+    "Euler"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/benfred/venn.js/issues"
+  },
+  "homepage": "https://github.com/benfred/venn.js"
 }

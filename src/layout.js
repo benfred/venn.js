@@ -10,6 +10,9 @@
         var initialLayout = parameters.initialLayout || venn.bestInitialLayout;
         var fmin = parameters.fmin || venn.fmin;
 
+        // add in missing pairwise areas as having 0 size
+        areas = addMissingAreas(areas);
+
         // initial layout is done greedily
         var circles = initialLayout(areas);
 
@@ -67,6 +70,41 @@
             return venn.circleOverlap(r1, r2, distance) - overlap;
         }, 0, r1 + r2);
     };
+
+    /** Missing pair-wise intersection area data can cause problems:
+     treating as an unknown means that sets will be laid out overlapping,
+     which isn't what people expect. To reflect that we want disjoint sets
+     here, set the overlap to 0 for all missing pairwise set intersections */
+    function addMissingAreas(areas) {
+        areas = areas.slice();
+
+        // two circle intersections that aren't defined
+        var ids = [], pairs = {}, i, j, a, b;
+        for (i = 0; i < areas.length; ++i) {
+            var area = areas[i];
+            if (area.sets.length == 1) {
+                ids.push(area.sets[0]);
+            } else if (area.sets.length == 2) {
+                a = area.sets[0];
+                b = area.sets[1];
+                pairs[[a, b]] = true;
+                pairs[[b, a]] = true;
+            }
+        }
+        ids.sort(function(a, b) { return a > b; });
+
+        for (i = 0; i < ids.length; ++i) {
+            a = ids[i];
+            for (j = i + 1; j < ids.length; ++j) {
+                b = ids[j];
+                if (!([a, b] in pairs)) {
+                    areas.push({'sets': [a, b],
+                                'size': 0});
+                }
+            }
+        }
+        return areas;
+    }
 
     /// Returns two matrices, one of the euclidean distances between the sets
     /// and the other indicating if there are subset or disjoint set relationships
@@ -296,7 +334,8 @@
             overlap.sort(sortOrder);
 
             if (overlap.length === 0) {
-                throw "Need overlap information for set " + JSON.stringify( set );
+                // this shouldn't happen anymore with addMissingAreas
+                throw "ERROR: missing pairwise overlap information";
             }
 
             var points = [];
