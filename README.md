@@ -19,7 +19,7 @@ To lay out a simple diagram, just define the sets and their sizes along with the
 of all the set intersections.
 
 The VennDiagram object will calculate a layout that is proportional to the
-input sizes, and display it in the appropiate selection when called:
+input sizes, and display it in the appropriate selection when called:
 
 ```javascript
 var sets = [ {sets: ['A'], size: 12}, 
@@ -104,7 +104,7 @@ div.datum(sets).call(venn.VennDiagram());
 var tooltip = d3.select("body").append("div")
     .attr("class", "venntooltip");
 
-// add listeners to all the groups to display tooltip on mousover
+// add listeners to all the groups to display tooltip on mouseover
 div.selectAll("g")
     .on("mouseover", function(d, i) {
         // sort all the areas relative to the current item

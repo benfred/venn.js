@@ -1,4 +1,4 @@
-var venn = venn || {'version' : '0.2'};
+var venn = venn || {'version' : '0.2.2'};
 
 (function(venn) {
     "use strict";
@@ -9,118 +9,129 @@ var venn = venn || {'version' : '0.2'};
             duration = 1000,
             orientation = Math.PI / 2,
             normalize = true,
+            wrap = true,
             fontSize = null,
             colours = d3.scale.category10(),
             layoutFunction = venn.venn;
 
         function chart(selection) {
-            selection.each(function(data) {
-                var solution = layoutFunction(data);
-                if (normalize) {
-                    solution = venn.normalizeSolution(solution, orientation);
+            var data = selection.datum();
+            var solution = layoutFunction(data);
+            if (normalize) {
+                solution = venn.normalizeSolution(solution, orientation);
+            }
+            var circles = venn.scaleSolution(solution, width, height, padding);
+            var textCentres = computeTextCentres(circles, data);
+
+            // draw out a svg
+            var svg = selection.selectAll("svg").data([circles]);
+            svg.enter().append("svg");
+
+            svg.attr("width", width)
+               .attr("height", height);
+
+            // to properly transition intersection areas, we need the
+            // previous circles locations. load from elements
+            var previous = {}, hasPrevious = false;
+            svg.selectAll("g").each(function (d) {
+                var path = d3.select(this).select("path").attr("d");
+                if ((d.sets.length == 1) && path) {
+                    hasPrevious = true;
+                    previous[d.sets[0]] = venn.circleFromPath(path);
                 }
-                var circles = venn.scaleSolution(solution, width, height, padding);
-                var textCentres = computeTextCentres(circles, data);
+            });
 
-                // draw out a svg
-                var svg = d3.select(this).selectAll("svg").data([circles]);
-                svg.enter().append("svg");
+            // interpolate intersection area paths between previous and
+            // current paths
+            var pathTween = function(d) {
+                return function(t) {
+                    var c = d.sets.map(function(set) {
+                        var start = previous[set], end = circles[set];
+                        if (!start) {
+                            start = {x : width/2, y : height/2, radius : 1};
+                        }
+                        if (!end) {
+                            end = {x : width/2, y : height/2, radius : 1};
+                        }
+                        return {'x' : start.x * (1 - t) + end.x * t,
+                                'y' : start.y * (1 - t) + end.y * t,
+                                'radius' : start.radius * (1 - t) + end.radius * t};
+                    });
+                    return venn.intersectionAreaPath(c);
+                };
+            };
 
-                svg.attr("width", width)
-                   .attr("height", height);
+            // update data, joining on the set ids
+            var nodes = svg.selectAll("g")
+                .data(data, function(d) { return d.sets; });
 
-                // to properly transition intersection areas, we need the
-                // previous circles locations. load from elements
-                var previous = {}, hasPrevious = false;
-                svg.selectAll("g").each(function (d) {
-                    var path = d3.select(this).select("path").attr("d");
-                    if ((d.sets.length == 1) && path) {
-                        hasPrevious = true;
-                        previous[d.sets[0]] = venn.circleFromPath(path);
-                    }
+            // create new nodes
+            var enter = nodes.enter()
+                .append('g')
+                .attr("class", function(d) {
+                    return "venn-area venn-" +
+                        (d.sets.length == 1 ? "circle" : "intersection") +
+                        (" venn-sets-" + d.sets.join("_"));
                 });
 
-                // interpolate intersection area paths between previous and
-                // current paths
-                var pathTween = function(d) {
-                    return function(t) {
-                        var c = d.sets.map(function (set) {
-                            var start = previous[set], end = circles[set];
-                            if (!start) {
-                                start = {x : width/2, y : height/2, radius : 1};
-                            }
-                            if (!end) {
-                                end = {x : width/2, y : height/2, radius : 1};
-                            }
-                            return {'x' : start.x * (1 - t) + end.x * t,
-                                    'y' : start.y * (1 - t) + end.y * t,
-                                    'radius' : start.radius * (1 - t) + end.radius * t};
+            enter.append("path")
+                .style("fill-opacity", "0")
+                .filter(function (d) { return d.sets.length == 1; } )
+                .style("fill", function(d) { return colours(label(d)); })
+                .style("fill-opacity", ".25");
 
-                        });
-                        return venn.intersectionAreaPath(c);
-                    };
-                };
+            var enterText = enter.append("text")
+                .attr("class", "label")
+                .style("fill", function(d) { return d.sets.length == 1 ? colours(label(d)) : "#444"; })
+                .text(function (d) { return label(d); } )
+                .attr("text-anchor", "middle")
+                .attr("dy", ".35em")
+                .attr("x", width/2)
+                .attr("y", height/2);
 
-                // update data, joining on the set ids
-                var nodes = svg.selectAll("g")
-                    .data(data, function(d) { return d.sets; });
+            // update existing
+            var update = nodes.transition("venn").duration(hasPrevious ? duration : 0);
+            update.select(".venn-circle path")
+                .attrTween("d", pathTween);
 
-                // create new nodes
-                var enter = nodes.enter()
-                    .append('g')
-                    .attr("class", function(d) {
-                        return "venn-area venn-" +
-                            (d.sets.length == 1 ? "circle" : "intersection") +
-                            (" venn-sets-" + d.sets.join("_"));
-                    });
+            var updateText = update.select("text")
+                .text(function (d) { return label(d); } )
+                .attr("x", function(d) {
+                    return Math.floor(textCentres[d.sets].x);
+                })
+                .attr("y", function(d) {
+                    return Math.floor(textCentres[d.sets].y);
+                });
 
-                enter.append("path")
-                    .style("fill-opacity", "0")
-                    .filter(function (d) { return d.sets.length == 1; } )
-                    .style("fill", function(d) { return colours(label(d)); })
-                    .style("fill-opacity", ".25");
+            if (wrap) {
+                updateText.each("end", venn.wrapText(circles, label));
+            }
 
-                var enterText = enter.append("text")
-                    .style("fill", function(d) { return d.sets.length == 1 ? colours(label(d)) : "#444"; })
-                    .text(function (d) { return label(d); } )
-                    .attr("text-anchor", "middle")
-                    .attr("dy", ".35em")
-                    .attr("x", width/2)
-                    .attr("y", height/2);
+            // remove old
+            var exit = nodes.exit().transition('venn').duration(duration).remove();
+            exit.select("path")
+                .attrTween("d", pathTween);
 
-                // update existing
-                var update = nodes.transition("venn").duration(hasPrevious ? duration : 0);
-                update.select("path")
-                    .attrTween("d", pathTween);
+            var exitText = exit.select("text")
+                .text(function (d) { return label(d); } )
+                .attr("x", width/2)
+                .attr("y", height/2);
 
-                var updateText = update.select("text")
-                    .text(function (d) { return label(d); } )
-                    .each("end", venn.wrapText(circles, label))
-                    .attr("x", function(d) {
-                        return Math.floor(textCentres[d.sets].x);
-                    })
-                    .attr("y", function(d) {
-                        return Math.floor(textCentres[d.sets].y);
-                    });
+            // if we've been passed a fontSize explicitly, use it to
+            // transition
+            if (fontSize !== null) {
+                enterText.style("font-size", "0px");
+                updateText.style("font-size", fontSize);
+                exitText.style("font-size", "0px");
+            }
 
-                // if we've been passed a fontSize explicitly, use it to
-                // transition
-                if (fontSize !== null) {
-                    enterText.style("font-size", "0px");
-                    updateText.style("font-size", fontSize);
-                }
 
-                // remove old
-                var remove = nodes.exit().transition('venn').duration(duration).remove();
-                remove.select("path")
-                    .attrTween("d", pathTween);
-
-                remove.select("text")
-                    .text(function (d) { return label(d); } )
-                    .attr("x", width/2)
-                    .attr("y", height/2)
-                    .style("font-size", "0px");
-            });
+            return {'circles': circles,
+                    'textCentres': textCentres,
+                    'nodes': nodes,
+                    'enter': enter,
+                    'update': update,
+                    'exit': exit};
         }
 
         function label(d) {
@@ -131,6 +142,12 @@ var venn = venn || {'version' : '0.2'};
                 return '' + d.sets[0];
             }
         }
+
+        chart.wrap = function(_) {
+            if (!arguments.length) return wrap;
+            wrap = _;
+            return chart;
+        };
 
         chart.width = function(_) {
             if (!arguments.length) return width;

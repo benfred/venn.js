@@ -29,11 +29,26 @@ var sets = [
     ];
 
 var chart = venn.VennDiagram()
+    chart.wrap(false) 
     .width(640)
     .height(640);
 
 var div = d3.select("#venn").datum(sets).call(chart);
 div.selectAll("text").style("fill", "white");
 div.selectAll(".venn-circle path").style("fill-opacity", .6);
+
+
+function annotateSizes() {
+    d3.select(this).select("text")
+        .append("tspan")
+        .text(function(d) { return "size " + d.size; })
+        .attr("x", function() { return d3.select(this.parentNode).attr("x"); })
+        .attr("dy", "1.5em")
+        .style("fill", "#666")
+        .style("font-size", "10px");
+}
+div.selectAll("g").transition("venn").each("end", annotateSizes).duration(0);
+
+
 </script>
 </html>
