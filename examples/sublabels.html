@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Venn diagram of Venn diagrams</title>
+<style>
+body {
+font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+</style>
+</head>
+
+<body>
+    <div id="venn"></div>
+</body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>   
+<script src="../venn.js"></script>
+<script>
+var sets = [
+            {sets:["Information"], size: 12},
+            {sets:["Overlap"], size: 12},
+            {sets:["Circles"], size: 12},
+            {sets: ["Information", "Overlap"], size: 4, label: "Redundancy"},
+            {sets: ["Information", "Circles"], size: 4, label: "Pie Charts", },
+            {sets: ["Overlap", "Circles"], size: 4, label: "Eclipses"},
+            {sets: ["Information", "Overlap", "Circles"], size: 2, label: "Venn Diagrams"}
+    ];
+
+var chart = venn.VennDiagram()
+    .wrap(false)
+    .fontSize("16px")
+    .width(640)
+    .height(640);
+
+function updateVenn(sets) {
+    var div = d3.select("#venn").datum(sets);
+    var layout = chart(div),
+        textCentres = layout.textCentres;
+
+    div.selectAll(".label").style("fill", "white");
+    div.selectAll(".venn-circle path").style("fill-opacity", .6);
+
+    // add new sublabels (growing from middle)
+    layout.enter
+        .append("text")
+        .attr("class", "sublabel")
+        .text(function(d) { return "size " + d.size; })
+        .style("fill", "#666")
+        .style("font-size", "0px")
+        .attr("text-anchor", "middle")
+        .attr("dy", "0")
+        .attr("x", chart.width() /2)
+        .attr("y", chart.height() /2);
+    
+    // move existing
+    layout.update
+        .select(".sublabel")
+        .style("font-size", "10px")
+        .attr("dy", "18")
+        .attr("x", function(d) {
+            return Math.floor(textCentres[d.sets].x);
+        })
+        .attr("y", function(d) {
+            return Math.floor(textCentres[d.sets].y);
+        });
+
+    // remove old (shrinking to middle)
+    layout.exit
+        .select(".sublabel")
+        .attr("x", chart.width() /2)
+        .attr("y", chart.height() /2)
+        .style("font-size", "0px");
+
+    return layout;
+}
+
+// add/remove set areas to showcase transitions
+updateVenn(sets.slice(0, 1));
+var i = 1, direction = 1;
+window.setInterval( function() {
+    i += direction;
+    if (i >= sets.length) {
+        direction = -1;
+    } else if (i <= 1) {
+        direction = 1;
+    }
+    updateVenn(sets.slice(0, i));
+}, 1500);
+
+</script>
+</html>
