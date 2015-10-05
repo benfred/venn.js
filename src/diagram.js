@@ -89,7 +89,7 @@
 
             // update existing
             var update = nodes.transition("venn").duration(hasPrevious ? duration : 0);
-            update.select(".venn-circle path")
+            update.select("path")
                 .attrTween("d", pathTween);
 
             var updateText = update.select("text")
