@@ -1,6 +1,6 @@
 {
   "name": "venn.js",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "author": "Ben Frederickson <ben@benfrederickson.com> (http:/www.benfrederickson.com)",
   "files": [
     "venn.min.js",
