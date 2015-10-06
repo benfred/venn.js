@@ -1,4 +1,4 @@
-var venn = venn || {'version' : '0.2.2'};
+var venn = venn || {'version' : '0.2.3'};
 
 (function(venn) {
     "use strict";
@@ -331,6 +331,10 @@ var venn = venn || {'version' : '0.2.2'};
 
                 if (areaStats.arcs.length === 0) {
                     ret = {'x': 0, 'y': -1000, disjoint:true};
+
+                } else if (areaStats.arcs.length == 1) {
+                    ret = {'x': areaStats.arcs[0].circle.x,
+                           'y': areaStats.arcs[0].circle.y};
                 } else {
                     // take average of all the points in the intersection
                     // polygon
