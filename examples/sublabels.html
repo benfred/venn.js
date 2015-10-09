@@ -56,6 +56,7 @@ function updateVenn(sets) {
     // move existing
     layout.update
         .select(".sublabel")
+        .text(function(d) { return "size " + d.size; })
         .style("font-size", "10px")
         .attr("dy", "18")
         .attr("x", function(d) {
@@ -68,6 +69,7 @@ function updateVenn(sets) {
     // remove old (shrinking to middle)
     layout.exit
         .select(".sublabel")
+        .attr("dy", "0")
         .attr("x", chart.width() /2)
         .attr("y", chart.height() /2)
         .style("font-size", "0px");

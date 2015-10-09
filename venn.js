@@ -1,4 +1,4 @@
-var venn = venn || {'version' : '0.2.3'};
+var venn = venn || {'version' : '0.2.4'};
 
 (function(venn) {
     "use strict";
@@ -70,8 +70,10 @@ var venn = venn || {'version' : '0.2.3'};
                 .append('g')
                 .attr("class", function(d) {
                     return "venn-area venn-" +
-                        (d.sets.length == 1 ? "circle" : "intersection") +
-                        (" venn-sets-" + d.sets.join("_"));
+                        (d.sets.length == 1 ? "circle" : "intersection");
+                })
+                .attr("data-venn-sets", function(d) {
+                    return d.sets.join("_");
                 });
 
             enter.append("path")
@@ -335,9 +337,16 @@ var venn = venn || {'version' : '0.2.3'};
                 } else if (areaStats.arcs.length == 1) {
                     ret = {'x': areaStats.arcs[0].circle.x,
                            'y': areaStats.arcs[0].circle.y};
+
+                } else if (exterior.length) {
+                    // try again without other circles
+                    ret = computeTextCentre(interior, []);
+
                 } else {
                     // take average of all the points in the intersection
-                    // polygon
+                    // polygon. this should basically never happen
+                    // and has some issues:
+                    // https://github.com/benfred/venn.js/issues/48#issuecomment-146069777
                     ret = venn.getCenter(areaStats.arcs.map(function (a) { return a.p1; }));
                 }
             }
@@ -347,19 +356,51 @@ var venn = venn || {'version' : '0.2.3'};
     }
     venn.computeTextCentre = computeTextCentre;
 
+    // given a dictionary of {setid : circle}, returns
+    // a dictionary of setid to list of circles that completely overlap it
+    function getOverlappingCircles(circles) {
+        var ret = {}, circleids = [];
+        for (var circleid in circles) {
+            circleids.push(circleid);
+            ret[circleid] = [];
+        }
+        for (var i  = 0; i < circleids.length; i++) {
+            var a = circles[circleids[i]];
+            for (var j = i + 1; j < circleids.length; ++j) {
+                var b = circles[circleids[j]],
+                    d = venn.distance(a, b);
+
+                if (d + b.radius <= a.radius + 1e-10) {
+                    ret[circleids[j]].push(circleids[i]);
+
+                } else if (d + a.radius <= b.radius + 1e-10) {
+                    ret[circleids[i]].push(circleids[j]);
+                }
+            }
+        }
+        return ret;
+    }
+
     function computeTextCentres(circles, areas) {
-        var ret = {};
+        var ret = {}, overlapped = getOverlappingCircles(circles);
         for (var i = 0; i < areas.length; ++i) {
-            var area = areas[i].sets, areaids = {};
+            var area = areas[i].sets, areaids = {}, exclude = {};
             for (var j = 0; j < area.length; ++j) {
                 areaids[area[j]] = true;
+                var overlaps = overlapped[area[j]];
+                // keep track of any circles that overlap this area,
+                // and don't consider for purposes of computing the text
+                // centre
+                for (var k = 0; k < overlaps.length; ++k) {
+                    exclude[overlaps[k]] = true;
+                }
             }
 
             var interior = [], exterior = [];
             for (var setid in circles) {
                 if (setid in areaids) {
                     interior.push(circles[setid]);
-                } else {
+                } else if (!(setid in exclude)) {
                     exterior.push(circles[setid]);
                 }
             }
@@ -377,6 +418,33 @@ var venn = venn || {'version' : '0.2.3'};
     // a particular area is on top (relativeTo) - and
     // all other areas are so that the smallest areas are on top
     venn.sortAreas = function(div, relativeTo) {
+
+        // figure out sets that are completly overlapped by relativeTo
+        var overlaps = getOverlappingCircles(div.selectAll("svg").datum());
+        var exclude = {};
+        for (var i = 0; i < relativeTo.sets.length; ++i) {
+            var check = relativeTo.sets[i];
+            for (var setid in overlaps) {
+                var overlap = overlaps[setid];
+                for (var j = 0; j < overlap.length; ++j) {
+                    if (overlap[j] == check) {
+                        exclude[setid] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // checks that all sets are in exclude;
+        function shouldExclude(sets) {
+            for (var i = 0; i < sets.length; ++i) {
+                if (!(sets[i] in exclude)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         // need to sort div's so that Z order is correct
         div.selectAll("g").sort(function (a, b) {
             // highest order set intersections first
@@ -384,9 +452,11 @@ var venn = venn || {'version' : '0.2.3'};
                 return a.sets.length - b.sets.length;
             }
 
-            // current element is highest inside its order
-            if ((a == relativeTo) || (b == relativeTo)) {
-                return (a == relativeTo) ? 1 : -1;
+            if (a == relativeTo) {
+                return shouldExclude(b.sets) ? -1 : 1;
+            }
+            if (b == relativeTo) {
+                return shouldExclude(a.sets) ? 1 : -1;
             }
 
             // finally by size
