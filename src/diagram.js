@@ -68,8 +68,10 @@
                 .append('g')
                 .attr("class", function(d) {
                     return "venn-area venn-" +
-                        (d.sets.length == 1 ? "circle" : "intersection") +
-                        (" venn-sets-" + d.sets.join("_"));
+                        (d.sets.length == 1 ? "circle" : "intersection");
+                })
+                .attr("data-venn-sets", function(d) {
+                    return d.sets.join("_");
                 });
 
             enter.append("path")
