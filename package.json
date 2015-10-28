@@ -32,5 +32,8 @@
   "bugs": {
     "url": "https://github.com/benfred/venn.js/issues"
   },
-  "homepage": "https://github.com/benfred/venn.js"
+  "homepage": "https://github.com/benfred/venn.js",
+  "scripts": {
+        "test": "grunt test"
+  }
 }
