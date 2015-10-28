@@ -1,4 +1,4 @@
-venn.js ![Build Status](https://travis-ci.org/benfred/venn.js.svg?branch=master)](https://travis-ci.org/benfred/venn.js)
+venn.js [![Build Status](https://travis-ci.org/benfred/venn.js.svg?branch=master)](https://travis-ci.org/benfred/venn.js)
 =======
 
 A javascript library for laying out area proportional venn and euler diagrams.
