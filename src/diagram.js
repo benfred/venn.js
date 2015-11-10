@@ -8,6 +8,7 @@
             orientation = Math.PI / 2,
             normalize = true,
             wrap = true,
+            styled = true,
             fontSize = null,
             colours = d3.scale.category10(),
             layoutFunction = venn.venn;
@@ -74,20 +75,26 @@
                     return d.sets.join("_");
                 });
 
-            enter.append("path")
-                .style("fill-opacity", "0")
-                .filter(function (d) { return d.sets.length == 1; } )
-                .style("fill", function(d) { return colours(label(d)); })
-                .style("fill-opacity", ".25");
-
-            var enterText = enter.append("text")
+            var enterPath = enter.append("path"),
+                enterText = enter.append("text")
                 .attr("class", "label")
-                .style("fill", function(d) { return d.sets.length == 1 ? colours(label(d)) : "#444"; })
                 .text(function (d) { return label(d); } )
                 .attr("text-anchor", "middle")
                 .attr("dy", ".35em")
                 .attr("x", width/2)
                 .attr("y", height/2);
+
+
+            // apply minimal style if wanted
+            if (styled) {
+                enterPath.style("fill-opacity", "0")
+                    .filter(function (d) { return d.sets.length == 1; } )
+                    .style("fill", function(d) { return colours(label(d)); })
+                    .style("fill-opacity", ".25");
+
+                enterText
+                    .style("fill", function(d) { return d.sets.length == 1 ? colours(label(d)) : "#444"; });
+            }
 
             // update existing
             var update = nodes.transition("venn").duration(hasPrevious ? duration : 0);
@@ -196,6 +203,13 @@
             normalize = _;
             return chart;
         };
+
+        chart.styled = function(_) {
+            if (!arguments.length) return styled;
+            styled = _;
+            return chart;
+        };
+
         chart.orientation = function(_) {
             if (!arguments.length) return orientation;
             orientation = _;
