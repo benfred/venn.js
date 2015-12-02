@@ -1,39 +1,48 @@
 {
-  "name": "venn.js",
-  "version": "0.2.5",
-  "author": "Ben Frederickson <ben@benfrederickson.com> (http:/www.benfrederickson.com)",
-  "files": [
-    "venn.min.js",
-    "venn.js"
-  ],
-  "url": "https://github.com/benfred/venn.js/issues",
-  "devDependencies": {
-    "grunt": "~0.4.5",
-    "grunt-contrib-uglify": "~0.9.1",
-    "grunt-contrib-concat": "~0.5.1",
-    "grunt-contrib-qunit": "~0.7.0",
-    "grunt-contrib-jshint": "~0.11.2"
-  },
-  "description": "Area Proportional Venn and Euler Diagrams",
-  "main": "venn.js",
-  "directories": {
-    "example": "examples",
-    "test": "tests"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/benfred/venn.js.git"
-  },
-  "keywords": [
-    "Venn",
-    "Euler"
-  ],
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/benfred/venn.js/issues"
-  },
-  "homepage": "https://github.com/benfred/venn.js",
-  "scripts": {
-        "test": "grunt test"
-  }
+    "name": "venn.js",
+    "version": "0.2.5",
+    "author": "Ben Frederickson <ben@benfrederickson.com> (http:/www.benfrederickson.com)",
+    "files": [
+        "venn.min.js",
+        "venn.js"
+    ],
+    "url": "https://github.com/benfred/venn.js/issues",
+    "devDependencies": {
+        "grunt": "~0.4.5",
+        "grunt-contrib-uglify": "~0.9.1",
+        "grunt-contrib-concat": "~0.5.1",
+        "grunt-contrib-qunit": "~0.7.0",
+        "grunt-contrib-jshint": "~0.11.2",
+        "rollup": "0.20.5",
+        "tape": "4",
+        "uglify-js": "2",
+        "grunt-esnext": "~0.4.0"
+    },
+    "description": "Area Proportional Venn and Euler Diagrams",
+    "main": "venn.js",
+    "directories": {
+        "example": "examples",
+        "test": "tests"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/benfred/venn.js.git"
+    },
+    "keywords": [
+        "Venn",
+        "Euler"
+    ],
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/benfred/venn.js/issues"
+    },
+    "jshintConfig": {
+        "esnext": true
+    },
+    "homepage": "https://github.com/benfred/venn.js",
+    "scripts": {
+        "pretest": "mkdir -p build && node -e 'process.stdout.write(\"var version = \\\"\" + require(\"./package.json\").version + \"\\\"; export * from \\\"../index\\\"; export {version};\");' > build/bundle.js && rollup -f umd -u venn -n venn -o build/venn.js -- build/bundle.js",
+        "test": "grunt test",
+        "prepublish": "npm run test && uglifyjs build/venn.js -c -m -o build/venn.min.js && rm -f build/venn.zip && zip -j build/venn.zip -- LICENSE README.md build/venn.js build/venn.min.js"
+    }
 }
