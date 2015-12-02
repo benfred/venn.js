@@ -28,6 +28,9 @@ module.exports = function(grunt) {
         },
 
         jshint: {
+            options: {
+                "esnext": true
+            },
             all: ['Gruntfile.js', 'src/*.js', 'tests/*js'],
         }
     });
@@ -36,7 +39,8 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-qunit');
     grunt.loadNpmTasks('grunt-contrib-jshint');
-    grunt.registerTask('default', ['concat', 'uglify', 'jshint', 'qunit']);
-    grunt.registerTask('build', ['concat', 'uglify']);
+    grunt.loadNpmTasks('grunt-esnext');
+    // grunt.registerTask('default', ['concat', 'uglify', 'jshint', 'qunit']);
+    // grunt.registerTask('build', ['concat', 'uglify']);
     grunt.registerTask('test', ['jshint', 'qunit']);
 };
