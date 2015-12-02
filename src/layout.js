@@ -12,6 +12,7 @@ import {
 from "./bisect.js";
 import {
     multiplyBy,
+    minimizeConjugateGradient,
     norm2,
     zeros,
     zerosM,
@@ -24,9 +25,9 @@ roughly correspond to the desired overlaps */
 function venn(areas, parameters) {
     parameters = parameters || {};
     parameters.maxIterations = parameters.maxIterations || 500;
-    var lossFunction = parameters.lossFunction || lossFunction;
+    var lossFn = parameters.lossFunction || lossFunction;
     var initialLayout = parameters.initialLayout || bestInitialLayout;
-    var fmin = parameters.fmin || fmin;
+    var fminFn = parameters.fmin || fmin;
 
     // add in missing pairwise areas as having 0 size
     areas = addMissingAreas(areas);
@@ -48,7 +49,7 @@ function venn(areas, parameters) {
 
     // optimize initial layout from our loss function
     var totalFunctionCalls = 0;
-    var solution = fmin(
+    var solution = fminFn(
         function(values) {
             totalFunctionCalls += 1;
             var current = {};
@@ -61,7 +62,7 @@ function venn(areas, parameters) {
                     // size : circles[setid].size
                 };
             }
-            return lossFunction(current, areas);
+            return lossFn(current, areas);
         },
         initial,
         parameters);
@@ -610,21 +611,21 @@ function disjointCluster(circles) {
     for (var i = 0; i < circles.length; ++i) {
         for (var j = i + 1; j < circles.length; ++j) {
             var maxDistance = circles[i].radius + circles[j].radius;
-            if (venn.distance(circles[i], circles[j]) + 1e-10 < maxDistance) {
+            if (distance(circles[i], circles[j]) + 1e-10 < maxDistance) {
                 union(circles[j], circles[i]);
             }
         }
     }
 
     // find all the disjoint clusters and group them together
-    var disjointClusters = {},
+    var disjointClst = {},
         setid;
     for (i = 0; i < circles.length; ++i) {
         setid = find(circles[i]).parent.setid;
-        if (!(setid in disjointClusters)) {
-            disjointClusters[setid] = [];
+        if (!(setid in disjointClst)) {
+            disjointClst[setid] = [];
         }
-        disjointClusters[setid].push(circles[i]);
+        disjointClst[setid].push(circles[i]);
     }
 
     // cleanup bookkeeping
@@ -634,9 +635,9 @@ function disjointCluster(circles) {
 
     // return in more usable form
     var ret = [];
-    for (setid in disjointClusters) {
-        if (disjointClusters.hasOwnProperty(setid)) {
-            ret.push(disjointClusters[setid]);
+    for (setid in disjointClst) {
+        if (disjointClst.hasOwnProperty(setid)) {
+            ret.push(disjointClst[setid]);
         }
     }
     return ret;
@@ -684,7 +685,7 @@ function normalizeSolution(solution, orientation) {
     }
 
     // get all the disjoint clusters
-    var clusters = venn.disjointCluster(circles);
+    var clusters = disjointCluster(circles);
 
     // orientate all disjoint sets, get sizes
     for (i = 0; i < clusters.length; ++i) {
