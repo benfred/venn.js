@@ -1,6 +1,6 @@
 import {fmin, bisect, minimizeConjugateGradient, zeros, zerosM, norm2,
         multiplyBy} from './fmin';
-import {intersectionArea, circleOverlap, circleCircleIntersection, distance, distanceFromIntersectArea} from './circleintersection';
+import {intersectionArea, circleOverlap, circleCircleIntersection, distance} from './circleintersection';
 
 /** given a list of set objects, and their corresponding overlaps.
 updates the (x, y, radius) attribute on each set such that their positions
