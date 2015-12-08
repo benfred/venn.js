@@ -7,7 +7,8 @@
     "rollup": "0.21.2",
     "uglify-js": "2",
     "faucet": "0.0",
-    "tape": "4"
+    "tape": "4",
+    "jshint": "^2.8.0"
   },
   "description": "Area Proportional Venn and Euler Diagrams",
   "main": "build/venn.js",
@@ -29,7 +30,9 @@
     "url": "https://github.com/benfred/venn.js/issues"
   },
   "homepage": "https://github.com/benfred/venn.js",
-  "jshintConfig": {"esnext": true},
+  "jshintConfig": {
+    "esnext": true
+  },
   "scripts": {
     "pretest": "mkdir -p build && node -e 'process.stdout.write(\"var version = \\\"\" + require(\"./package.json\").version + \"\\\"; export * from \\\"../index\\\"; export {version};\");' > build/bundle.js && rollup -f umd -u venn -n venn -o build/venn.js -- build/bundle.js",
     "test": "jshint src/* && faucet `find tests -name '*test.js'`",
