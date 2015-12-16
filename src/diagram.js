@@ -12,6 +12,7 @@ export function VennDiagram() {
         wrap = true,
         styled = true,
         fontSize = null,
+        orientationOrder = null,
         colours = d3.scale.category10(),
         layoutFunction = venn;
 
@@ -19,7 +20,9 @@ export function VennDiagram() {
         var data = selection.datum();
         var solution = layoutFunction(data);
         if (normalize) {
-            solution = normalizeSolution(solution, orientation);
+            solution = normalizeSolution(solution,
+                                         orientation,
+                                         orientationOrder);
         }
         var circles = scaleSolution(solution, width, height, padding);
         var textCentres = computeTextCentres(circles, data);
@@ -215,6 +218,12 @@ export function VennDiagram() {
     chart.orientation = function(_) {
         if (!arguments.length) return orientation;
         orientation = _;
+        return chart;
+    };
+
+    chart.orientationOrder = function(_) {
+        if (!arguments.length) return orientationOrder;
+        orientationOrder = _;
         return chart;
     };
 

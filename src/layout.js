@@ -447,9 +447,12 @@ export function lossFunction(sets, overlaps) {
 }
 
 // orientates a bunch of circles to point in orientation
-function orientateCircles(circles, orientation) {
-    // sort circles by size
-    circles.sort(function (a, b) { return b.radius - a.radius; });
+function orientateCircles(circles, orientation, orientationOrder) {
+    if (orientationOrder === null) {
+        circles.sort(function (a, b) { return b.radius - a.radius; });
+    } else {
+        circles.sort(orientationOrder);
+    }
 
     var i;
     // shift circles so largest circle is at (0, 0)
@@ -557,8 +560,10 @@ function getBoundingBox(circles) {
     return {xRange: minMax('x'), yRange: minMax('y')};
 }
 
-export function normalizeSolution(solution, orientation) {
-    orientation = orientation || Math.PI/2;
+export function normalizeSolution(solution, orientation, orientationOrder) {
+    if (orientation === null){
+        orientation = Math.PI/2;
+    }
 
     // work with a list instead of a dictionary, and take a copy so we
     // don't mutate input
@@ -578,7 +583,7 @@ export function normalizeSolution(solution, orientation) {
 
     // orientate all disjoint sets, get sizes
     for (i = 0; i < clusters.length; ++i) {
-        orientateCircles(clusters[i], orientation);
+        orientateCircles(clusters[i], orientation, orientationOrder);
         var bounds = getBoundingBox(clusters[i]);
         clusters[i].size = (bounds.xRange.max - bounds.xRange.min) * (bounds.yRange.max - bounds.yRange.min);
         clusters[i].bounds = bounds;

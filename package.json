@@ -1,6 +1,6 @@
 {
   "name": "venn.js",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "author": "Ben Frederickson <ben@benfrederickson.com> (http:/www.benfrederickson.com)",
   "url": "https://github.com/benfred/venn.js/issues",
   "devDependencies": {
@@ -35,7 +35,7 @@
   },
   "scripts": {
     "pretest": "mkdir -p build && node -e 'process.stdout.write(\"var version = \\\"\" + require(\"./package.json\").version + \"\\\"; export * from \\\"../index\\\"; export {version};\");' > build/bundle.js && rollup -f umd -u venn -n venn -o build/venn.js -- build/bundle.js",
-    "test": "jshint src/* && faucet `find tests -name '*test.js'`",
+    "test": "jshint src/*.js && faucet `find tests -name '*test.js'`",
     "prepublish": "npm run test && uglifyjs build/venn.js -c -m -o build/venn.min.js && rm -f build/venn.zip && zip -j build/venn.zip -- LICENSE README.md build/venn.js build/venn.min.js"
   }
 }

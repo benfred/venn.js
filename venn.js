@@ -978,9 +978,12 @@
     }
 
     // orientates a bunch of circles to point in orientation
-    function orientateCircles(circles, orientation) {
-        // sort circles by size
-        circles.sort(function (a, b) { return b.radius - a.radius; });
+    function orientateCircles(circles, orientation, orientationOrder) {
+        if (orientationOrder === null) {
+            circles.sort(function (a, b) { return b.radius - a.radius; });
+        } else {
+            circles.sort(orientationOrder);
+        }
 
         var i;
         // shift circles so largest circle is at (0, 0)
@@ -1088,8 +1091,10 @@
         return {xRange: minMax('x'), yRange: minMax('y')};
     }
 
-    function normalizeSolution(solution, orientation) {
-        orientation = orientation || Math.PI/2;
+    function normalizeSolution(solution, orientation, orientationOrder) {
+        if (orientation === null){
+            orientation = Math.PI/2;
+        }
 
         // work with a list instead of a dictionary, and take a copy so we
         // don't mutate input
@@ -1109,7 +1114,7 @@
 
         // orientate all disjoint sets, get sizes
         for (i = 0; i < clusters.length; ++i) {
-            orientateCircles(clusters[i], orientation);
+            orientateCircles(clusters[i], orientation, orientationOrder);
             var bounds = getBoundingBox(clusters[i]);
             clusters[i].size = (bounds.xRange.max - bounds.xRange.min) * (bounds.yRange.max - bounds.yRange.min);
             clusters[i].bounds = bounds;
@@ -1221,6 +1226,7 @@
             wrap = true,
             styled = true,
             fontSize = null,
+            orientationOrder = null,
             colours = d3.scale.category10(),
             layoutFunction = venn;
 
@@ -1228,7 +1234,9 @@
             var data = selection.datum();
             var solution = layoutFunction(data);
             if (normalize) {
-                solution = normalizeSolution(solution, orientation);
+                solution = normalizeSolution(solution,
+                                             orientation,
+                                             orientationOrder);
             }
             var circles = scaleSolution(solution, width, height, padding);
             var textCentres = computeTextCentres(circles, data);
@@ -1424,6 +1432,12 @@
         chart.orientation = function(_) {
             if (!arguments.length) return orientation;
             orientation = _;
+            return chart;
+        };
+
+        chart.orientationOrder = function(_) {
+            if (!arguments.length) return orientationOrder;
+            orientationOrder = _;
             return chart;
         };
 
@@ -1728,7 +1742,7 @@
         }
     }
 
-    var version = "0.2.6";
+    var version = "0.2.7";
 
     exports.version = version;
     exports.fmin = fmin;

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Custom Orientation Order</title>
+<style>
+body {
+font-size : 16px;
+font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+</style>
+</head>
+
+<body>
+
+    <h4> default ordering </h4>
+    <div id="default"></div>
+    <h4> ordering setids lexically </h4>
+    <div id="lexical"></div>
+    <h4> custom ordering </h4>
+    <div id="custom"></div>
+</body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script src="../venn.js"></script>
+<script>
+var sets = [
+            {sets:["A"], size: 10},
+            {sets:["B"], size: 11},
+            {sets:["C"], size: 10},
+            {sets: ["A", "B"], size: 4},
+            {sets: ["A", "C"], size: 4},
+            {sets: ["B", "C"], size: 4},
+            {sets: ["A", "B", "C"], size:2}
+    ];
+
+var chart = venn.VennDiagram()
+    .width(640)
+    .height(640);
+
+
+d3.select("#default").datum(sets).call(chart);
+
+chart.orientationOrder(function (a, b) { return a.setid.localeCompare(b.setid); })
+d3.select("#lexical").datum(sets).call(chart);
+
+var customOrdering = {"A" : 1, "C": 2, "B" : 3}
+chart.orientationOrder(function (a, b) { return customOrdering[a.setid] - customOrdering[b.setid]})
+d3.select("#custom").datum(sets).call(chart);
+</script>
+</html>
