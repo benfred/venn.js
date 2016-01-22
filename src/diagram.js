@@ -1,5 +1,5 @@
 import {venn, normalizeSolution, scaleSolution} from "./layout";
-import {intersectionArea, distance} from "./circleintersection";
+import {intersectionArea, distance, getCenter} from "./circleintersection";
 import {fmin} from "./fmin";
 
 export function VennDiagram() {

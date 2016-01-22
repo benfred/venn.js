@@ -1,7 +1,7 @@
 {
   "name": "venn.js",
   "main": "venn.js",
-  "version": "0.2.6",
+  "version": "0.2.8",
   "homepage": "https://github.com/benfred/venn.js",
   "authors": [
     "Ben Frederickson (ben@benfrederickson.com)"

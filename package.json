@@ -1,6 +1,6 @@
 {
   "name": "venn.js",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "author": "Ben Frederickson <ben@benfrederickson.com> (http:/www.benfrederickson.com)",
   "url": "https://github.com/benfred/venn.js/issues",
   "devDependencies": {

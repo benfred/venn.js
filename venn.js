@@ -333,7 +333,7 @@
         if (innerPoints.length > 1) {
             // sort the points by angle from the center of the polygon, which lets
             // us just iterate over points to get the edges
-            var center = getCenter$1(innerPoints);
+            var center = getCenter(innerPoints);
             for (i = 0; i < innerPoints.length; ++i ) {
                 var p = innerPoints[i];
                 p.angle = Math.atan2(p.x - center.x, p.y - center.y);
@@ -522,7 +522,7 @@
     }
 
     /** Returns the center of a bunch of points */
-    function getCenter$1(points) {
+    function getCenter(points) {
         var center = {x: 0, y: 0};
         for (var i =0; i < points.length; ++i ) {
             center.x += points[i].x;
@@ -1742,7 +1742,7 @@
         }
     }
 
-    var version = "0.2.7";
+    var version = "0.2.8";
 
     exports.version = version;
     exports.fmin = fmin;
