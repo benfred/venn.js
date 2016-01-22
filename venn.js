@@ -1584,7 +1584,7 @@
                     // polygon. this should basically never happen
                     // and has some issues:
                     // https://github.com/benfred/venn.js/issues/48#issuecomment-146069777
-                    ret = getCenter(areaStats.arcs.map(function (a) { return a.p1; }));
+                    ret = getCenter$1(areaStats.arcs.map(function (a) { return a.p1; }));
                 }
             }
         }
