@@ -1336,16 +1336,9 @@
             // remove old
             var exit = nodes.exit().transition('venn').duration(duration).remove();
 
-            function endall(tween, callback) {
-                var n = 0;
-                tween
-                .each(function() { ++n;})
-                .each("end", function() {if (!--n) callback.apply(this, arguments);});
-            }
-
             exit.select("path")
                 .attrTween("d", pathTween)
-                .call(function () {
+                .call(function (tween) {
                     var n = 0;
                     tween
                     .each(function() { ++n;})
