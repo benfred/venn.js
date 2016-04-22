@@ -1226,6 +1226,7 @@
             wrap = true,
             styled = true,
             fontSize = null,
+            onDiagramUpdated = function () {return;},
             orientationOrder = null,
             colours = d3.scale.category10(),
             layoutFunction = venn;
