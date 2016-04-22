@@ -1335,8 +1335,25 @@
 
             // remove old
             var exit = nodes.exit().transition('venn').duration(duration).remove();
+
+            function endall(tween, callback) {
+                var n = 0;
+                tween
+                .each(function() { ++n;})
+                .each("end", function() {if (!--n) callback.apply(this, arguments);});
+            }
+
             exit.select("path")
-                .attrTween("d", pathTween);
+                .attrTween("d", pathTween)
+                .call(function () {
+                    var n = 0;
+                    tween
+                    .each(function() { ++n;})
+                    .each("end", function() {if (!--n) {
+                            onDiagramUpdated.apply(this, arguments);
+                        }
+                    });
+                });
 
             var exitText = exit.select("text")
                 .text(function (d) { return label(d); } )
@@ -1438,6 +1455,12 @@
         chart.orientationOrder = function(_) {
             if (!arguments.length) return orientationOrder;
             orientationOrder = _;
+            return chart;
+        };
+
+        chart.onDiagramUpdated = function(_) {
+            if (!arguments.length) return onDiagramUpdated;
+            onDiagramUpdated = _;
             return chart;
         };
 
