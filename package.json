@@ -1,21 +1,18 @@
 {
   "name": "venn.js",
-  "version": "0.2.3",
+  "version": "0.2.9",
   "author": "Ben Frederickson <ben@benfrederickson.com> (http:/www.benfrederickson.com)",
-  "files": [
-    "venn.min.js",
-    "venn.js"
-  ],
   "url": "https://github.com/benfred/venn.js/issues",
   "devDependencies": {
-    "grunt": "~0.4.5",
-    "grunt-contrib-uglify": "~0.9.1",
-    "grunt-contrib-concat": "~0.5.1",
-    "grunt-contrib-qunit": "~0.7.0",
-    "grunt-contrib-jshint": "~0.11.2"
+    "rollup": "0.21.2",
+    "uglify-js": "2",
+    "faucet": "0.0",
+    "tape": "4",
+    "jshint": "^2.8.0"
   },
   "description": "Area Proportional Venn and Euler Diagrams",
-  "main": "venn.js",
+  "main": "build/venn.js",
+  "jsnext:main": "index",
   "directories": {
     "example": "examples",
     "test": "tests"
@@ -32,5 +29,13 @@
   "bugs": {
     "url": "https://github.com/benfred/venn.js/issues"
   },
-  "homepage": "https://github.com/benfred/venn.js"
+  "homepage": "https://github.com/benfred/venn.js",
+  "jshintConfig": {
+    "esnext": true
+  },
+  "scripts": {
+    "pretest": "mkdir -p build && node -e 'process.stdout.write(\"var version = \\\"\" + require(\"./package.json\").version + \"\\\"; export * from \\\"../index\\\"; export {version};\");' > build/bundle.js && rollup -f umd -u venn -n venn -o build/venn.js -- build/bundle.js",
+    "test": "jshint src/*.js && faucet `find tests -name '*test.js'`",
+    "prepublish": "npm run test && uglifyjs build/venn.js -c -m -o build/venn.min.js && rm -f build/venn.zip && zip -j build/venn.zip -- LICENSE README.md build/venn.js build/venn.min.js"
+  }
 }

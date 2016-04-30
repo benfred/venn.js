@@ -36,49 +36,47 @@ var chart = venn.VennDiagram()
 function updateVenn(sets) {
     var div = d3.select("#venn").datum(sets);
     var layout = chart(div),
-        textCentres = layout.textCentres;
+        circles = layout.circles;
 
     div.selectAll(".label").style("fill", "white");
     div.selectAll(".venn-circle path").style("fill-opacity", .6);
 
-    // add new sublabels (growing from middle)
+    // add new bounding boxes
     layout.enter
-        .append("text")
-        .attr("class", "sublabel")
-        .text(function(d) { return "size " + d.size; })
-        .style("fill", "#666")
-        .style("font-size", "0px")
-        .attr("text-anchor", "middle")
-        .attr("dy", "0")
+        .filter(function(d) { return d.sets.length == 1; })
+        .append("rect")
+        .attr("class", "box")
+        .style("stroke", "#666")
+        .style("stroke-width", "2")
+        .style("fill-opacity", "0.2")
+        .attr("height", 0)
+        .attr("width", 0)
         .attr("x", chart.width() /2)
         .attr("y", chart.height() /2);
     
     // move existing
     layout.update
-        .select(".sublabel")
-        .text(function(d) { return "size " + d.size; })
-        .style("font-size", "10px")
-        .attr("dy", "18")
-        .attr("x", function(d) {
-            return Math.floor(textCentres[d.sets].x);
-        })
-        .attr("y", function(d) {
-            return Math.floor(textCentres[d.sets].y);
-        });
+        .select(".box")
+        .attr("x", function(d) {  var c = circles[d.sets[0]]; return c.x - c.radius; })
+        .attr("y", function(d) {  var c = circles[d.sets[0]]; return c.y - c.radius; })
+        .attr("height", function(d) {  var c = circles[d.sets[0]]; return 2 * c.radius; })
+        .attr("width", function(d) {  var c = circles[d.sets[0]]; return 2 * c.radius; })
+        .each("end", function() { console.log("done move"); })
 
     // remove old (shrinking to middle)
     layout.exit
-        .select(".sublabel")
-        .attr("dy", "0")
+        .select(".box")
         .attr("x", chart.width() /2)
         .attr("y", chart.height() /2)
+        .attr("width", 0)
+        .attr("height", 0)
         .style("font-size", "0px");
 
     return layout;
 }
 
 // add/remove set areas to showcase transitions
-updateVenn(sets.slice(0, 1));
+updateVenn(sets.slice(0, 2));
 var i = 1, direction = 1;
 window.setInterval( function() {
     i += direction;

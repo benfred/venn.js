@@ -1,4 +1,4 @@
-venn.js
+venn.js [![Build Status](https://travis-ci.org/benfred/venn.js.svg?branch=master)](https://travis-ci.org/benfred/venn.js)
 =======
 
 A javascript library for laying out area proportional venn and euler diagrams.
@@ -8,10 +8,17 @@ post](http://www.benfrederickson.com/venn-diagrams-with-d3.js/)
 I wrote about this. A follow up post [discusses testing strategy and
 algorithmic improvements](http://www.benfrederickson.com/better-venn-diagrams/).
 
-#### Usage
+
+### Installing
+
+If you use NPM, `npm install venn.js`. Otherwise, download the [latest release](https://github.com/benfred/venn.js/releases/latest).
+
+
+### Usage
 
 This library depends on [d3.js](http://d3js.org/) to display the venn
 diagrams.
+
 
 ##### Simple layout
 
@@ -137,14 +144,5 @@ div.selectAll("g")
     });
 ```
 [View this example](http://benfred.github.io/venn.js/examples/intersection_tooltip.html)
-
-#### Building
-
-To build venn.js and venn.min.js from the files in src/ - you should first
-install [grunt](http://gruntjs.com/) by  following [these instructions](http://gruntjs.com/getting-started).
-
-Once you have grunt installed, running 'npm install' in the source directory will download all the
-dev dependencies, and then running 'grunt' will concat all the source files,
-minify them, and run jshint and the unittests.
 
 Released under the MIT License.

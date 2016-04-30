@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Example Using CSS to style</title>
+<style>
+svg path {
+    stroke: white;
+    stroke-width: 2px;
+}
+
+svg text {
+    fill: white;
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 14px;
+}
+
+[data-venn-sets="A"]   { fill: orange; }
+[data-venn-sets="B"]   { fill: blue; }
+[data-venn-sets="A_B"] { fill: brown; }
+</style>
+</head>
+
+<body>
+<div id="venn"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script src="../venn.js"></script>
+<script>
+// create chart, and turn off default styling (using CSS instead)
+var chart = venn.VennDiagram()
+    .styled(false);
+
+// draw chart 
+d3.select("#venn")
+    .datum([{sets: ['A'], size: 12},
+            {sets: ['B'], size: 12},
+            {sets: ['A','B'], size: 2, label : 'A&B'}])
+    .call(chart);
+</script>
+</body>
+</html>
