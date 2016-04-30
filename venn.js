@@ -1135,7 +1135,7 @@
             if (right) {
                 xOffset = returnBounds.xRange.max  - bounds.xRange.min + spacing;
             } else {
-                xOffset = returnBounds.xRange.max  - bounds.xRange.max - spacing;
+                xOffset = returnBounds.xRange.max  - bounds.xRange.max;
                 centreing = (bounds.xRange.max - bounds.xRange.min) / 2 -
                             (returnBounds.xRange.max - returnBounds.xRange.min) / 2;
                 if (centreing < 0) xOffset += centreing;
@@ -1144,7 +1144,7 @@
             if (bottom) {
                 yOffset = returnBounds.yRange.max  - bounds.yRange.min + spacing;
             } else {
-                yOffset = returnBounds.yRange.max  - bounds.yRange.max - spacing;
+                yOffset = returnBounds.yRange.max  - bounds.yRange.max;
                 centreing = (bounds.yRange.max - bounds.yRange.min) / 2 -
                             (returnBounds.yRange.max - returnBounds.yRange.min) / 2;
                 if (centreing < 0) yOffset += centreing;

@@ -2,6 +2,8 @@ import {venn, normalizeSolution, scaleSolution} from "./layout";
 import {intersectionArea, distance, getCenter} from "./circleintersection";
 import {fmin} from "./fmin";
 
+/*global d3 console:true*/
+
 export function VennDiagram() {
     var width = 600,
         height = 350,

@@ -387,35 +387,6 @@ export function greedyLayout(areas) {
     return circles;
 }
 
-/// Uses multidimensional scaling to approximate a first layout here
-export function classicMDSLayout(areas) {
-    // bidirectionally map sets to a rowid  (so we can create a matrix)
-    var sets = [], setids = {};
-    for (var i = 0; i < areas.length; ++i ) {
-        var area = areas[i];
-        if (area.sets.length == 1) {
-            setids[area.sets[0]] = sets.length;
-            sets.push(area);
-        }
-    }
-
-    // get the distance matrix, and use to position sets
-    var distances = getDistanceMatrices(areas, sets, setids).distances;
-    var positions = mds.classic(distances);
-
-    // translate rows back to (x,y,radius) coordinates
-    var circles = {};
-    for (i = 0; i < sets.length; ++i) {
-        var set = sets[i];
-        circles[set.sets[0]] = {
-            x: positions[i][0],
-            y: positions[i][1],
-            radius:  Math.sqrt(set.size / Math.PI)
-        };
-    }
-    return circles;
-}
-
 /** Given a bunch of sets, and the desired overlaps between these sets - computes
 the distance from the actual overlaps to the desired overlaps. Note that
 this method ignores overlaps of more than 2 circles */
@@ -604,7 +575,7 @@ export function normalizeSolution(solution, orientation, orientationOrder) {
         if (right) {
             xOffset = returnBounds.xRange.max  - bounds.xRange.min + spacing;
         } else {
-            xOffset = returnBounds.xRange.max  - bounds.xRange.max - spacing;
+            xOffset = returnBounds.xRange.max  - bounds.xRange.max;
             centreing = (bounds.xRange.max - bounds.xRange.min) / 2 -
                         (returnBounds.xRange.max - returnBounds.xRange.min) / 2;
             if (centreing < 0) xOffset += centreing;
@@ -613,7 +584,7 @@ export function normalizeSolution(solution, orientation, orientationOrder) {
         if (bottom) {
             yOffset = returnBounds.yRange.max  - bounds.yRange.min + spacing;
         } else {
-            yOffset = returnBounds.yRange.max  - bounds.yRange.max - spacing;
+            yOffset = returnBounds.yRange.max  - bounds.yRange.max;
             centreing = (bounds.yRange.max - bounds.yRange.min) / 2 -
                         (returnBounds.yRange.max - returnBounds.yRange.min) / 2;
             if (centreing < 0) yOffset += centreing;
