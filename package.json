@@ -13,6 +13,11 @@
   "description": "Area Proportional Venn and Euler Diagrams",
   "main": "build/venn.js",
   "jsnext:main": "index",
+  "files": [
+    "build",
+    "src",
+    "*.js"
+  ],
   "directories": {
     "example": "examples",
     "test": "tests"
