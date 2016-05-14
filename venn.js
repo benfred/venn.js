@@ -384,9 +384,12 @@
                         }
                     }
                 }
-                arcs.push(arc);
-                arcArea += circleArea(arc.circle.radius, arc.width);
-                p2 = p1;
+
+                if (arc !== null) {
+                    arcs.push(arc);
+                    arcArea += circleArea(arc.circle.radius, arc.width);
+                    p2 = p1;
+                }
             }
         } else {
             // no intersection points, is either disjoint - or is completely
@@ -918,35 +921,6 @@
         return circles;
     }
 
-    /// Uses multidimensional scaling to approximate a first layout here
-    function classicMDSLayout(areas) {
-        // bidirectionally map sets to a rowid  (so we can create a matrix)
-        var sets = [], setids = {};
-        for (var i = 0; i < areas.length; ++i ) {
-            var area = areas[i];
-            if (area.sets.length == 1) {
-                setids[area.sets[0]] = sets.length;
-                sets.push(area);
-            }
-        }
-
-        // get the distance matrix, and use to position sets
-        var distances = getDistanceMatrices(areas, sets, setids).distances;
-        var positions = mds.classic(distances);
-
-        // translate rows back to (x,y,radius) coordinates
-        var circles = {};
-        for (i = 0; i < sets.length; ++i) {
-            var set = sets[i];
-            circles[set.sets[0]] = {
-                x: positions[i][0],
-                y: positions[i][1],
-                radius:  Math.sqrt(set.size / Math.PI)
-            };
-        }
-        return circles;
-    }
-
     /** Given a bunch of sets, and the desired overlaps between these sets - computes
     the distance from the actual overlaps to the desired overlaps. Note that
     this method ignores overlaps of more than 2 circles */
@@ -1215,6 +1189,8 @@
 
         return scaled;
     }
+
+    /*global d3 console:true*/
 
     function VennDiagram() {
         var width = 600,
@@ -1742,7 +1718,7 @@
         }
     }
 
-    var version = "0.2.8";
+    var version = "0.2.10";
 
     exports.version = version;
     exports.fmin = fmin;
@@ -1756,7 +1732,6 @@
     exports.circleIntegral = circleIntegral;
     exports.venn = venn;
     exports.greedyLayout = greedyLayout;
-    exports.classicMDSLayout = classicMDSLayout;
     exports.scaleSolution = scaleSolution;
     exports.normalizeSolution = normalizeSolution;
     exports.bestInitialLayout = bestInitialLayout;

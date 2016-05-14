@@ -220,6 +220,14 @@ tape("randomFailures", function(test) {
         area = venn.intersectionArea(circles);
 
     test.ok(Math.abs(area - 0.0008914) < 0.0001, area);
+
+    circles = [{"x":9.154829758385864,"y":0,"size":226,"radius":8.481629223064205},
+               {"x":5.806079662851866,"y":7.4438023223126795,"size":733,"radius":15.274853405932202},
+               {"x":9.484491297623553,"y":4.064806303558571,"size":332,"radius":10.280023453913834},
+               {"x":10.56492833796709,"y":3.0723147554880175,"size":244,"radius":8.812923024107548}];
+
+    area = venn.intersectionArea(circles);
+    nearlyEqual(test, area, 10.963620)
     test.end();
 });
 

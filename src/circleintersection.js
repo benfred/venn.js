@@ -69,9 +69,12 @@ export function intersectionArea(circles, stats) {
                     }
                 }
             }
-            arcs.push(arc);
-            arcArea += circleArea(arc.circle.radius, arc.width);
-            p2 = p1;
+
+            if (arc !== null) {
+                arcs.push(arc);
+                arcArea += circleArea(arc.circle.radius, arc.width);
+                p2 = p1;
+            }
         }
     } else {
         // no intersection points, is either disjoint - or is completely
