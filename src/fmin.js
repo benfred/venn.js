@@ -68,11 +68,13 @@ export function fmin(f, x0, parameters) {
         nonZeroDelta = parameters.nonZeroDelta || 1.1,
         zeroDelta = parameters.zeroDelta || 0.001,
         minErrorDelta = parameters.minErrorDelta || 1e-6,
+        minTolerance = parameters.minErrorDelta || 1e-5,
         rho = parameters.rho || 1,
         chi = parameters.chi || 2,
         psi = parameters.psi || -0.5,
         sigma = parameters.sigma || 0.5,
         callback = parameters.callback,
+        maxDiff,
         temp;
 
     // initialize simplex.
@@ -100,7 +102,13 @@ export function fmin(f, x0, parameters) {
             callback(simplex);
         }
 
-        if (Math.abs(simplex[0].fx - simplex[N].fx) < minErrorDelta) {
+        maxDiff = 0;
+        for (i = 0; i < N; ++i) {
+            maxDiff = Math.max(maxDiff, Math.abs(simplex[0][i] - simplex[1][i]));
+        }
+
+        if ((Math.abs(simplex[0].fx - simplex[N].fx) < minErrorDelta) &&
+            (maxDiff < minTolerance)) {
             break;
         }
 
@@ -139,7 +147,7 @@ export function fmin(f, x0, parameters) {
         else if (reflected.fx >= simplex[N-1].fx) {
             var shouldReduce = false;
 
-            if (reflected.fx <= worst.fx) {
+            if (reflected.fx > worst.fx) {
                 // do an inside contraction
                 weightedSum(contracted, 1+psi, centroid, -psi, worst);
                 contracted.fx = f(contracted);
@@ -166,7 +174,7 @@ export function fmin(f, x0, parameters) {
             if (shouldReduce) {
                 // do reduction. doesn't actually happen that often
                 for (i = 1; i < simplex.length; ++i) {
-                    weightedSum(simplex[i], 1 - sigma, simplex[0], sigma - 1, simplex[i]);
+                    weightedSum(simplex[i], 1 - sigma, simplex[0], sigma, simplex[i]);
                     simplex[i].fx = f(simplex[i]);
                 }
             }
