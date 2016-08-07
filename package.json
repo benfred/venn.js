@@ -6,7 +6,8 @@
   "devDependencies": {
     "rollup": "0.27",
     "tape": "4",
-    "uglify-js": "2"
+    "uglify-js": "2",
+    "jshint": "^2.8.0"
   },
   "description": "Area Proportional Venn and Euler Diagrams",
   "main": "build/venn.js",

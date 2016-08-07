@@ -1238,7 +1238,6 @@
             var data = selection.datum();
             var solution = layoutFunction(data);
             if (normalize) {
-                console.log(orientationOrder);
                 solution = normalizeSolution(solution,
                                              orientation,
                                              orientationOrder);
