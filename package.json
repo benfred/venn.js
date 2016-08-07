@@ -1,18 +1,22 @@
 {
   "name": "venn.js",
-  "version": "0.2.9",
+  "version": "0.2.11",
   "author": "Ben Frederickson <ben@benfrederickson.com> (http:/www.benfrederickson.com)",
   "url": "https://github.com/benfred/venn.js/issues",
   "devDependencies": {
-    "rollup": "0.21.2",
-    "uglify-js": "2",
-    "faucet": "0.0",
+    "rollup": "0.27",
     "tape": "4",
+    "uglify-js": "2",
     "jshint": "^2.8.0"
   },
   "description": "Area Proportional Venn and Euler Diagrams",
   "main": "build/venn.js",
   "jsnext:main": "index",
+  "files": [
+    "build",
+    "src",
+    "*.js"
+  ],
   "directories": {
     "example": "examples",
     "test": "tests"
@@ -34,8 +38,13 @@
     "esnext": true
   },
   "scripts": {
-    "pretest": "mkdir -p build && node -e 'process.stdout.write(\"var version = \\\"\" + require(\"./package.json\").version + \"\\\"; export * from \\\"../index\\\"; export {version};\");' > build/bundle.js && rollup -f umd -u venn -n venn -o build/venn.js -- build/bundle.js",
-    "test": "jshint src/*.js && faucet `find tests -name '*test.js'`",
-    "prepublish": "npm run test && uglifyjs build/venn.js -c -m -o build/venn.min.js && rm -f build/venn.zip && zip -j build/venn.zip -- LICENSE README.md build/venn.js build/venn.min.js"
+    "pretest": "rm -rf build && mkdir build && rollup -g d3-selection:d3,d3-transition:d3 -f umd -n venn -o build/venn.js -- index.js && cp build/venn.js .",
+    "test": "jshint src/*.js && tape 'tests/**/*test.js'",
+    "prepublish": "npm run test && uglifyjs build/venn.js -c -m -o build/venn.min.js",
+    "postpublish": "zip -j build/venn.zip -- LICENSE README.md build/venn.js build/venn.min.js"
+  },
+  "dependencies": {
+    "d3-selection": "^1.0.2",
+    "d3-transition": "^1.0.1"
   }
 }

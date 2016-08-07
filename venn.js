@@ -1,8 +1,8 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-    typeof define === 'function' && define.amd ? define('venn', ['exports'], factory) :
-    factory((global.venn = {}));
-}(this, function (exports) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-transition')) :
+    typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-transition'], factory) :
+    factory((global.venn = {}),global.d3,global.d3);
+}(this, function (exports,d3Selection,d3Transition) { 'use strict';
 
     /** finds the zeros of a function, given two starting points (which must
      * have opposite signs */
@@ -74,11 +74,13 @@
             nonZeroDelta = parameters.nonZeroDelta || 1.1,
             zeroDelta = parameters.zeroDelta || 0.001,
             minErrorDelta = parameters.minErrorDelta || 1e-6,
+            minTolerance = parameters.minErrorDelta || 1e-5,
             rho = parameters.rho || 1,
             chi = parameters.chi || 2,
             psi = parameters.psi || -0.5,
             sigma = parameters.sigma || 0.5,
             callback = parameters.callback,
+            maxDiff,
             temp;
 
         // initialize simplex.
@@ -106,7 +108,13 @@
                 callback(simplex);
             }
 
-            if (Math.abs(simplex[0].fx - simplex[N].fx) < minErrorDelta) {
+            maxDiff = 0;
+            for (i = 0; i < N; ++i) {
+                maxDiff = Math.max(maxDiff, Math.abs(simplex[0][i] - simplex[1][i]));
+            }
+
+            if ((Math.abs(simplex[0].fx - simplex[N].fx) < minErrorDelta) &&
+                (maxDiff < minTolerance)) {
                 break;
             }
 
@@ -145,7 +153,7 @@
             else if (reflected.fx >= simplex[N-1].fx) {
                 var shouldReduce = false;
 
-                if (reflected.fx <= worst.fx) {
+                if (reflected.fx > worst.fx) {
                     // do an inside contraction
                     weightedSum(contracted, 1+psi, centroid, -psi, worst);
                     contracted.fx = f(contracted);
@@ -172,7 +180,7 @@
                 if (shouldReduce) {
                     // do reduction. doesn't actually happen that often
                     for (i = 1; i < simplex.length; ++i) {
-                        weightedSum(simplex[i], 1 - sigma, simplex[0], sigma - 1, simplex[i]);
+                        weightedSum(simplex[i], 1 - sigma, simplex[0], sigma, simplex[i]);
                         simplex[i].fx = f(simplex[i]);
                     }
                 }
@@ -384,9 +392,12 @@
                         }
                     }
                 }
-                arcs.push(arc);
-                arcArea += circleArea(arc.circle.radius, arc.width);
-                p2 = p1;
+
+                if (arc !== null) {
+                    arcs.push(arc);
+                    arcArea += circleArea(arc.circle.radius, arc.width);
+                    p2 = p1;
+                }
             }
         } else {
             // no intersection points, is either disjoint - or is completely
@@ -918,35 +929,6 @@
         return circles;
     }
 
-    /// Uses multidimensional scaling to approximate a first layout here
-    function classicMDSLayout(areas) {
-        // bidirectionally map sets to a rowid  (so we can create a matrix)
-        var sets = [], setids = {};
-        for (var i = 0; i < areas.length; ++i ) {
-            var area = areas[i];
-            if (area.sets.length == 1) {
-                setids[area.sets[0]] = sets.length;
-                sets.push(area);
-            }
-        }
-
-        // get the distance matrix, and use to position sets
-        var distances = getDistanceMatrices(areas, sets, setids).distances;
-        var positions = mds.classic(distances);
-
-        // translate rows back to (x,y,radius) coordinates
-        var circles = {};
-        for (i = 0; i < sets.length; ++i) {
-            var set = sets[i];
-            circles[set.sets[0]] = {
-                x: positions[i][0],
-                y: positions[i][1],
-                radius:  Math.sqrt(set.size / Math.PI)
-            };
-        }
-        return circles;
-    }
-
     /** Given a bunch of sets, and the desired overlaps between these sets - computes
     the distance from the actual overlaps to the desired overlaps. Note that
     this method ignores overlaps of more than 2 circles */
@@ -1216,6 +1198,8 @@
         return scaled;
     }
 
+    /*global console:true*/
+
     function VennDiagram() {
         var width = 600,
             height = 350,
@@ -1227,7 +1211,27 @@
             styled = true,
             fontSize = null,
             orientationOrder = null,
-            colours = d3.scale.category10(),
+
+            // mimic the behaviour of d3.scale.category10 from the previous
+            // version of d3
+            colourMap = {},
+
+            // so this is the same as d3.schemeCategory10, which is only defined in d3 4.0
+            // since we can support older versions of d3 as long as we don't force this,
+            // I'm hackily redefining below. TODO: remove this and change to d3.schemeCategory10
+            colourScheme = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"],
+            colourIndex = 0,
+            colours = function(key) {
+                if (key in colourMap) {
+                    return colourMap[key];
+                }
+                var ret = colourMap[key] = colourScheme[colourIndex];
+                colourIndex += 1;
+                if (colourIndex >= colourScheme.length) {
+                    colourIndex = 0;
+                }
+                return ret;
+            },
             layoutFunction = venn;
 
         function chart(selection) {
@@ -1241,18 +1245,18 @@
             var circles = scaleSolution(solution, width, height, padding);
             var textCentres = computeTextCentres(circles, data);
 
-            // draw out a svg
-            var svg = selection.selectAll("svg").data([circles]);
-            svg.enter().append("svg");
+            // create svg if not already existing
+            selection.selectAll("svg").data([circles]).enter().append("svg");
 
-            svg.attr("width", width)
-               .attr("height", height);
+            var svg = selection.select("svg")
+                .attr("width", width)
+                .attr("height", height);
 
             // to properly transition intersection areas, we need the
             // previous circles locations. load from elements
             var previous = {}, hasPrevious = false;
-            svg.selectAll("g").each(function (d) {
-                var path = d3.select(this).select("path").attr("d");
+            svg.selectAll("g path").each(function (d) {
+                var path = d3Selection.select(this).attr("d");
                 if ((d.sets.length == 1) && path) {
                     hasPrevious = true;
                     previous[d.sets[0]] = circleFromPath(path);
@@ -1315,31 +1319,39 @@
                     .style("fill", function(d) { return d.sets.length == 1 ? colours(label(d)) : "#444"; });
             }
 
-            // update existing
-            var update = nodes.transition("venn").duration(hasPrevious ? duration : 0);
-            update.select("path")
-                .attrTween("d", pathTween);
+            // update existing, using pathTween if necessary
+            var update = selection;
+            if (hasPrevious) {
+                update = selection.transition("venn").duration(duration);
+                update.selectAll("path")
+                    .attrTween("d", pathTween);
+            } else {
+                update.selectAll("path")
+                    .attr("d", function(d) {
+                        return intersectionAreaPath(d.sets.map(function (set) { return circles[set]; }));
+                    });
+            }
 
-            var updateText = update.select("text")
+            var updateText = update.selectAll("text")
+                .filter(function (d) { return d.sets in textCentres; })
                 .text(function (d) { return label(d); } )
-                .attr("x", function(d) {
-                    return Math.floor(textCentres[d.sets].x);
-                })
-                .attr("y", function(d) {
-                    return Math.floor(textCentres[d.sets].y);
-                });
+                .attr("x", function(d) { return Math.floor(textCentres[d.sets].x);})
+                .attr("y", function(d) { return Math.floor(textCentres[d.sets].y);});
 
             if (wrap) {
-                updateText.each("end", wrapText(circles, label));
+                if (hasPrevious) {
+                    updateText.on("end", wrapText(circles, label));
+                } else {
+                    updateText.each(wrapText(circles, label));
+                }
             }
 
             // remove old
             var exit = nodes.exit().transition('venn').duration(duration).remove();
-            exit.select("path")
+            exit.selectAll("path")
                 .attrTween("d", pathTween);
 
-            var exitText = exit.select("text")
-                .text(function (d) { return label(d); } )
+            var exitText = exit.selectAll("text")
                 .attr("x", width/2)
                 .attr("y", height/2);
 
@@ -1452,7 +1464,7 @@
     // this seems to be one of those things that should be easy but isn't
     function wrapText(circles, labeller) {
         return function() {
-            var text = d3.select(this),
+            var text = d3Selection.select(this),
                 data = text.datum(),
                 width = circles[data.sets[0]].radius || 50,
                 label = labeller(data) || '';
@@ -1742,9 +1754,6 @@
         }
     }
 
-    var version = "0.2.8";
-
-    exports.version = version;
     exports.fmin = fmin;
     exports.minimizeConjugateGradient = minimizeConjugateGradient;
     exports.bisect = bisect;
@@ -1756,7 +1765,6 @@
     exports.circleIntegral = circleIntegral;
     exports.venn = venn;
     exports.greedyLayout = greedyLayout;
-    exports.classicMDSLayout = classicMDSLayout;
     exports.scaleSolution = scaleSolution;
     exports.normalizeSolution = normalizeSolution;
     exports.bestInitialLayout = bestInitialLayout;

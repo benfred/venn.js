@@ -14,7 +14,7 @@ font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
     <div id="venn"></div>
 </body>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>   
+<script src="https://d3js.org/d3.v4.min.js"></script>
 <script src="../venn.js"></script>
 <script>
 var sets = [
@@ -22,7 +22,7 @@ var sets = [
             {sets:["Overlap"], size: 12},
             {sets:["Circles"], size: 12},
             {sets: ["Information", "Overlap"], size: 4, label: "Redundancy"},
-            {sets: ["Information", "Circles"], size: 4, label: "Pie Charts", },
+            {sets: ["Information", "Circles"], size: 4, label: "Pie Charts"},
             {sets: ["Overlap", "Circles"], size: 4, label: "Eclipses"},
             {sets: ["Information", "Overlap", "Circles"], size: 2, label: "Venn Diagrams"}
     ];
@@ -55,16 +55,13 @@ function updateVenn(sets) {
     
     // move existing
     layout.update
-        .select(".sublabel")
+        .selectAll(".sublabel")
+        .filter(function (d) { return d.sets in textCentres; })
         .text(function(d) { return "size " + d.size; })
         .style("font-size", "10px")
         .attr("dy", "18")
-        .attr("x", function(d) {
-            return Math.floor(textCentres[d.sets].x);
-        })
-        .attr("y", function(d) {
-            return Math.floor(textCentres[d.sets].y);
-        });
+        .attr("x", function(d) { return Math.floor(textCentres[d.sets].x);})
+        .attr("y", function(d) { return Math.floor(textCentres[d.sets].y);});
 
     // remove old (shrinking to middle)
     layout.exit

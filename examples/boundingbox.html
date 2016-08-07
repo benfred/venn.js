@@ -14,7 +14,7 @@ font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
     <div id="venn"></div>
 </body>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>   
+<script src="https://d3js.org/d3.v4.min.js"></script>
 <script src="../venn.js"></script>
 <script>
 var sets = [
@@ -56,12 +56,12 @@ function updateVenn(sets) {
     
     // move existing
     layout.update
-        .select(".box")
+        .selectAll(".box")
+        .filter(function(d) { return d.sets in circles; })
         .attr("x", function(d) {  var c = circles[d.sets[0]]; return c.x - c.radius; })
         .attr("y", function(d) {  var c = circles[d.sets[0]]; return c.y - c.radius; })
         .attr("height", function(d) {  var c = circles[d.sets[0]]; return 2 * c.radius; })
         .attr("width", function(d) {  var c = circles[d.sets[0]]; return 2 * c.radius; })
-        .each("end", function() { console.log("done move"); })
 
     // remove old (shrinking to middle)
     layout.exit
