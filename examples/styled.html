@@ -12,7 +12,7 @@ body {
 </head>
 
 <body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
     <script src="../venn.js"></script>
     <script src="./medical.jsonp"></script>
 
@@ -84,17 +84,17 @@ body {
                              .width(500)
                              .height(500);
 
-             d3.select("#dropshadow").datum(sets).call(chart);
+            d3.select("#dropshadow").datum(sets).call(chart);
 
-            var colours = d3.scale.category10();
+            var colours = d3.schemeCategory10;
             var areas = d3.selectAll("#dropshadow g")
             areas.select("path")
                 .filter(function(d) { return d.sets.length == 1; })
                 .style("fill-opacity", .1)
                 .style("stroke-width", 5)
                 .style("stroke-opacity", .8)
-                .style("fill", function(d,i) { return colours(i); })
-                .style("stroke", function(d,i) { return colours(i); });
+                .style("fill", function(d,i) { return colours[i]; })
+                .style("stroke", function(d,i) { return colours[i]; });
 
             areas.select("text").style("fill", "#444")
                 .style("font-family", "Shadows Into Light")

@@ -414,6 +414,7 @@ function VennEulerViz(div) {
     var minRadius = .1, maxRadius = .5;
 
     var currentChart = venn.VennDiagram()
+        .wrap(false)
         .layoutFunction(function (x) { return current; })
         .normalize(false)
         .width(width)
@@ -495,6 +496,7 @@ var disjointAreas = [{"sets":[0],"size":98},{"sets":[1],"size":48},{"sets":[0,1]
 var disjointSolution = {"0":{"x":13.024995696225679,"y":8.54400374531753,"radius":5.585191925620058},"1":{"x":4.063011794409385,"y":8.54400374531753,"radius":3.908820095223359}}
 
 var disjointChart = venn.VennDiagram()
+    .wrap(false)
     .layoutFunction(function (x) { return disjointSolution; })
     .width(width)
     .height(Math.min(width, 250));

@@ -1,8 +1,8 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-    typeof define === 'function' && define.amd ? define('venn', ['exports'], factory) :
-    factory((global.venn = {}));
-}(this, function (exports) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-transition')) :
+    typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-transition'], factory) :
+    factory((global.venn = {}),global.d3,global.d3);
+}(this, function (exports,d3Selection,d3Transition) { 'use strict';
 
     /** finds the zeros of a function, given two starting points (which must
      * have opposite signs */
@@ -1198,26 +1198,47 @@
         return scaled;
     }
 
-    /*global d3 console:true*/
+    /*global console:true*/
 
     function VennDiagram() {
         var width = 600,
             height = 350,
             padding = 15,
             duration = 1000,
-            orientation = Math.PI / 2,
+            orientation = Math.PI,
             normalize = true,
             wrap = true,
             styled = true,
             fontSize = null,
             orientationOrder = null,
-            colours = d3.scale.category10(),
+
+            // mimic the behaviour of d3.scale.category10 from the previous
+            // version of d3
+            colourMap = {},
+
+            // so this is the same as d3.schemeCategory10, which is only defined in d3 4.0
+            // since we can support older versions of d3 as long as we don't force this,
+            // I'm hackily redefining below. TODO: remove this and change to d3.schemeCategory10
+            colourScheme = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"],
+            colourIndex = 0,
+            colours = function(key) {
+                if (key in colourMap) {
+                    return colourMap[key];
+                }
+                var ret = colourMap[key] = colourScheme[colourIndex];
+                colourIndex += 1;
+                if (colourIndex >= colourScheme.length) {
+                    colourIndex = 0;
+                }
+                return ret;
+            },
             layoutFunction = venn;
 
         function chart(selection) {
             var data = selection.datum();
             var solution = layoutFunction(data);
             if (normalize) {
+                console.log(orientationOrder);
                 solution = normalizeSolution(solution,
                                              orientation,
                                              orientationOrder);
@@ -1225,18 +1246,18 @@
             var circles = scaleSolution(solution, width, height, padding);
             var textCentres = computeTextCentres(circles, data);
 
-            // draw out a svg
-            var svg = selection.selectAll("svg").data([circles]);
-            svg.enter().append("svg");
+            // create svg if not already existing
+            selection.selectAll("svg").data([circles]).enter().append("svg");
 
-            svg.attr("width", width)
-               .attr("height", height);
+            var svg = selection.select("svg")
+                .attr("width", width)
+                .attr("height", height);
 
             // to properly transition intersection areas, we need the
             // previous circles locations. load from elements
             var previous = {}, hasPrevious = false;
-            svg.selectAll("g").each(function (d) {
-                var path = d3.select(this).select("path").attr("d");
+            svg.selectAll("g path").each(function (d) {
+                var path = d3Selection.select(this).attr("d");
                 if ((d.sets.length == 1) && path) {
                     hasPrevious = true;
                     previous[d.sets[0]] = circleFromPath(path);
@@ -1299,31 +1320,39 @@
                     .style("fill", function(d) { return d.sets.length == 1 ? colours(label(d)) : "#444"; });
             }
 
-            // update existing
-            var update = nodes.transition("venn").duration(hasPrevious ? duration : 0);
-            update.select("path")
-                .attrTween("d", pathTween);
+            // update existing, using pathTween if necessary
+            var update = selection;
+            if (hasPrevious) {
+                update = selection.transition("venn").duration(duration);
+                update.selectAll("path")
+                    .attrTween("d", pathTween);
+            } else {
+                update.selectAll("path")
+                    .attr("d", function(d) {
+                        return intersectionAreaPath(d.sets.map(function (set) { return circles[set]; }));
+                    });
+            }
 
-            var updateText = update.select("text")
+            var updateText = update.selectAll("text")
+                .filter(function (d) { return d.sets in textCentres; })
                 .text(function (d) { return label(d); } )
-                .attr("x", function(d) {
-                    return Math.floor(textCentres[d.sets].x);
-                })
-                .attr("y", function(d) {
-                    return Math.floor(textCentres[d.sets].y);
-                });
+                .attr("x", function(d) { return Math.floor(textCentres[d.sets].x);})
+                .attr("y", function(d) { return Math.floor(textCentres[d.sets].y);});
 
             if (wrap) {
-                updateText.each("end", wrapText(circles, label));
+                if (hasPrevious) {
+                    updateText.on("end", wrapText(circles, label));
+                } else {
+                    updateText.each(wrapText(circles, label));
+                }
             }
 
             // remove old
             var exit = nodes.exit().transition('venn').duration(duration).remove();
-            exit.select("path")
+            exit.selectAll("path")
                 .attrTween("d", pathTween);
 
-            var exitText = exit.select("text")
-                .text(function (d) { return label(d); } )
+            var exitText = exit.selectAll("text")
                 .attr("x", width/2)
                 .attr("y", height/2);
 
@@ -1436,7 +1465,7 @@
     // this seems to be one of those things that should be easy but isn't
     function wrapText(circles, labeller) {
         return function() {
-            var text = d3.select(this),
+            var text = d3Selection.select(this),
                 data = text.datum(),
                 width = circles[data.sets[0]].radius || 50,
                 label = labeller(data) || '';
@@ -1726,9 +1755,6 @@
         }
     }
 
-    var version = "0.2.10";
-
-    exports.version = version;
     exports.fmin = fmin;
     exports.minimizeConjugateGradient = minimizeConjugateGradient;
     exports.bisect = bisect;
