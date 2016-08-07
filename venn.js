@@ -1205,7 +1205,7 @@
             height = 350,
             padding = 15,
             duration = 1000,
-            orientation = Math.PI,
+            orientation = Math.PI / 2,
             normalize = true,
             wrap = true,
             styled = true,
