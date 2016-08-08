@@ -1340,7 +1340,13 @@
 
             if (wrap) {
                 if (hasPrevious) {
-                    updateText.on("end", wrapText(circles, label));
+                    // d3 4.0 uses 'on' for events on transitions,
+                    // but d3 3.0 used 'each' instead. switch appropiately
+                    if ('on' in updateText) {
+                        updateText.on("end", wrapText(circles, label));
+                    } else {
+                        updateText.each("end", wrapText(circles, label));
+                    }
                 } else {
                     updateText.each(wrapText(circles, label));
                 }
