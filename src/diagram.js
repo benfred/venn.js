@@ -147,7 +147,7 @@ export function VennDiagram() {
 
         if (wrap) {
             if (hasPrevious) {
-                updateText.on("end", wrapText(circles, label));
+                updateText.select("end", wrapText(circles, label));
             } else {
                 updateText.each(wrapText(circles, label));
             }
