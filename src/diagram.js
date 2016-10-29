@@ -62,7 +62,7 @@ export function VennDiagram() {
         // to properly transition intersection areas, we need the
         // previous circles locations. load from elements
         var previous = {}, hasPrevious = false;
-        svg.selectAll("g path").each(function (d) {
+        svg.selectAll(".venn-area path").each(function (d) {
             var path = select(this).attr("d");
             if ((d.sets.length == 1) && path) {
                 hasPrevious = true;
@@ -91,7 +91,7 @@ export function VennDiagram() {
         };
 
         // update data, joining on the set ids
-        var nodes = svg.selectAll("g")
+        var nodes = svg.selectAll(".venn-area")
             .data(data, function(d) { return d.sets; });
 
         // create new nodes
