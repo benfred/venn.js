@@ -81,7 +81,7 @@ function hilightErrors(div, areas, current, duration) {
     // calculate success, and highlight failures in red
     var failedAreas = getErrors(areas, current);
 
-    div.select(".venn-intersection path")
+    div.selectAll(".venn-intersection path")
         .style("stroke-width", 0).style("fill-opacity", 0);
 
     for (var i = 0; i < failedAreas.length; ++i) {
