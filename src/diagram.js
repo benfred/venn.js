@@ -3,7 +3,7 @@ import {transition} from "d3-transition";
 
 import {venn, normalizeSolution, scaleSolution} from "./layout";
 import {intersectionArea, distance, getCenter} from "./circleintersection";
-import {fmin} from "./fmin";
+import {nelderMead} from "../node_modules/fmin/index.js";
 
 /*global console:true*/
 
@@ -363,10 +363,10 @@ export function computeTextCentre(interior, exterior) {
     }
 
     // maximize the margin numerically
-    var solution = fmin(
+    var solution = nelderMead(
                 function(p) { return -1 * circleMargin({x: p[0], y: p[1]}, interior, exterior); },
                 [initial.x, initial.y],
-                {maxIterations:500, minErrorDelta:1e-10}).solution;
+                {maxIterations:500, minErrorDelta:1e-10}).x;
     var ret = {x: solution[0], y: solution[1]};
 
     // check solution, fallback as needed (happens if fully overlapped

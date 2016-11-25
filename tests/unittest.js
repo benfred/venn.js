@@ -62,47 +62,6 @@ tape("greedyLayout", function(test) {
     test.end();
 });
 
-tape("fmin", function(test) {
-    // minimize simple 1 diminesial quadratic
-    var loss = function(values) { return (values[0] - 10) * (values[0] - 10); };
-    var solution = venn.fmin(loss, [0], {minErrorDelta:1e-10}).solution;
-    nearlyEqual(test, solution[0], 10, 1e-10);
-    test.end();
-});
-
-tape("fmin_himmelblau", function(test) {
-    // due to a bug, this used to not converge to the minimum
-    var x = 4.9515014216303825, y = 0.07301421370357275;
-    function himmelblau(x, y) {
-        return (x * x + y - 11) * ( x * x + y - 11) + (x + y * y - 7) * (x + y * y - 7);
-    }
-    var solution = venn.fmin(function (x) { return himmelblau(x[0], x[1]);}, [x, y]);
-    nearlyEqual(test, solution.f, 0);
-    test.end();
-});
-
-tape("fmin_banana", function(test) {
-    var x = 1.6084564160555601, y = -1.5980748860165477;
-    function banana(x, y) {
-        return (1 - x) * (1 - x) + 100 * (y - x * x) * ( y - x * x);
-    }
-
-    var solution = venn.fmin(function (x) { return banana(x[0], x[1]);}, [x, y]);
-    nearlyEqual(test, solution.f, 0);
-    test.end();
-});
-
-tape("minimizeConjugateGradient", function(test) {
-    // minimize simple 1 diminesial quadratic
-    var loss = function(x, xprime) {
-        xprime[0] = 2 * (x[0] - 10);
-        return (x[0] - 10) * (x[0] - 10);
-    };
-    var solution = venn.minimizeConjugateGradient(loss, [0]).x;
-    nearlyEqual(test, solution[0], 10, 1e-10);
-    test.end();
-});
-
 tape("circleIntegral", function(test) {
     nearlyEqual(test, venn.circleIntegral(10, 0), 0, SMALL,
         "empty circle test");
