@@ -1,6 +1,6 @@
 {
   "name": "venn.js",
-  "version": "0.2.12",
+  "version": "0.2.14",
   "author": "Ben Frederickson <ben@benfrederickson.com> (http:/www.benfrederickson.com)",
   "url": "https://github.com/benfred/venn.js/issues",
   "devDependencies": {
@@ -44,6 +44,7 @@
     "postpublish": "zip -j build/venn.zip -- LICENSE README.md build/venn.js build/venn.min.js"
   },
   "dependencies": {
+    "fmin": "0.0.2",
     "d3-selection": "^1.0.2",
     "d3-transition": "^1.0.1"
   }

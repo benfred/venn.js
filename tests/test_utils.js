@@ -86,7 +86,7 @@ function hilightErrors(div, areas, current, duration) {
 
     for (var i = 0; i < failedAreas.length; ++i) {
         var area = failedAreas[i];
-        div.select('[data-venn-sets="' + area.sets[0] + "_" + area.sets[1] + '"] path')
+        div.selectAll('[data-venn-sets="' + area.sets[0] + "_" + area.sets[1] + '"] path')
             .style("stroke", "red")
             .style("stroke-opacity", 1)
             .style("stroke-width", 2)

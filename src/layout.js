@@ -1,5 +1,5 @@
-import {fmin, bisect, minimizeConjugateGradient, zeros, zerosM, norm2,
-        multiplyBy} from './fmin';
+import {nelderMead, bisect, conjugateGradient, zeros, zerosM, norm2,
+        scale} from '../node_modules/fmin/index.js';
 import {intersectionArea, circleOverlap, circleCircleIntersection, distance} from './circleintersection';
 
 /** given a list of set objects, and their corresponding overlaps.
@@ -28,7 +28,7 @@ export function venn(areas, parameters) {
 
     // optimize initial layout from our loss function
     var totalFunctionCalls = 0;
-    var solution = fmin(
+    var solution = nelderMead(
         function(values) {
             totalFunctionCalls += 1;
             var current = {};
@@ -46,7 +46,7 @@ export function venn(areas, parameters) {
         parameters);
 
     // transform solution vector back to x/y points
-    var positions = solution.solution;
+    var positions = solution.x;
     for (var i = 0; i < setids.length; ++i) {
         setid = setids[i];
         circles[setid].x = positions[2 * i];
@@ -228,7 +228,7 @@ export function constrainedMDSLayout(areas, params) {
     for (i = 0; i < restarts; ++i) {
         var initial = zeros(distances.length*2).map(Math.random);
 
-        current = minimizeConjugateGradient(obj, initial, params);
+        current = conjugateGradient(obj, initial, params);
         if (!best || (current.fx < best.fx)) {
             best = current;
         }
@@ -248,7 +248,7 @@ export function constrainedMDSLayout(areas, params) {
 
     if (params.history) {
         for (i = 0; i < params.history.length; ++i) {
-            multiplyBy(params.history[i].x, norm);
+            scale(params.history[i].x, norm);
         }
     }
     return circles;
