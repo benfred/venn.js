@@ -62,14 +62,6 @@ tape("greedyLayout", function(test) {
     test.end();
 });
 
-tape("circleIntegral", function(test) {
-    nearlyEqual(test, venn.circleIntegral(10, 0), 0, SMALL,
-        "empty circle test");
-    nearlyEqual(test, venn.circleIntegral(10, 10),  Math.PI * 10 * 10 / 2,
-        SMALL, "half circle test");
-    test.end();
-});
-
 tape("circleArea", function(test) {
     nearlyEqual(test, venn.circleArea(10,0), 0, SMALL, "empty circle test");
     nearlyEqual(test, venn.circleArea(10, 10), Math.PI*10*10/2, SMALL,
