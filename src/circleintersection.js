@@ -148,14 +148,9 @@ function getIntersectionPoints(circles) {
     return ret;
 }
 
-export function circleIntegral(r, x) {
-    var y = Math.sqrt(r * r - x * x);
-    return x * y + r * r * Math.atan2(x, y);
-}
-
-/** Returns the area of a circle of radius r - up to width */
+/** Circular segment area calculation. See http://mathworld.wolfram.com/CircularSegment.html */
 export function circleArea(r, width) {
-    return circleIntegral(r, width - r) - circleIntegral(r, -r);
+    return r * r * Math.acos(1 - width/r) - (r - width) * Math.sqrt(width * (2 * r - width));
 }
 
 /** euclidean distance between two points */
