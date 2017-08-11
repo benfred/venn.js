@@ -1196,8 +1196,15 @@
 
         var bounds = getBoundingBox(circles),
             xRange = bounds.xRange,
-            yRange = bounds.yRange,
-            xScaling = width  / (xRange.max - xRange.min),
+            yRange = bounds.yRange;
+
+        if ((xRange.max == xRange.min) ||
+            (yRange.max == yRange.min)) {
+            console.log("not scaling solution: zero size detected");
+            return solution;
+        }
+
+        var xScaling = width  / (xRange.max - xRange.min),
             yScaling = height / (yRange.max - yRange.min),
             scaling = Math.min(yScaling, xScaling),
 
