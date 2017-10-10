@@ -52,6 +52,20 @@ export function VennDiagram() {
         var circles = scaleSolution(solution, width, height, padding);
         var textCentres = computeTextCentres(circles, data);
 
+        // Figure out the current label for each set. These can change
+        // and D3 won't necessarily update (fixes https://github.com/benfred/venn.js/issues/103)
+        var labels = {};
+        data.forEach(function(datum) { labels[datum.sets] = datum.label; });
+
+        function label(d) {
+            if (d.sets in labels) {
+                return labels[d.sets];
+            }
+            if (d.sets.length == 1) {
+                return '' + d.sets[0];
+            }
+        }
+
         // create svg if not already existing
         selection.selectAll("svg").data([circles]).enter().append("svg");
 
@@ -119,11 +133,11 @@ export function VennDiagram() {
         if (styled) {
             enterPath.style("fill-opacity", "0")
                 .filter(function (d) { return d.sets.length == 1; } )
-                .style("fill", function(d) { return colours(label(d)); })
+                .style("fill", function(d) { return colours(d.sets); })
                 .style("fill-opacity", ".25");
 
             enterText
-                .style("fill", function(d) { return d.sets.length == 1 ? colours(label(d)) : "#444"; });
+                .style("fill", function(d) { return d.sets.length == 1 ? colours(d.sets) : "#444"; });
         }
 
         // update existing, using pathTween if necessary
@@ -183,15 +197,6 @@ export function VennDiagram() {
                 'enter': enter,
                 'update': update,
                 'exit': exit};
-    }
-
-    function label(d) {
-        if (d.label) {
-            return d.label;
-        }
-        if (d.sets.length == 1) {
-            return '' + d.sets[0];
-        }
     }
 
     chart.wrap = function(_) {
