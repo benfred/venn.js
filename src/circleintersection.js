@@ -132,7 +132,7 @@ export function containedInCircles(point, circles) {
 }
 
 /** Gets all intersection points between a bunch of circles */
-function getIntersectionPoints(circles) {
+export function getIntersectionPoints(circles) {
     var ret = [];
     for (var i = 0; i < circles.length; ++i) {
         for (var j = i + 1; j < circles.length; ++j) {
