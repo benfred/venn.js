@@ -18,7 +18,7 @@ export function VennDiagram(option) {
 		styled = true,
 		fontSize = null,
 		orientationOrder = null,
-		splitIntersection = option.splitIntersection || false,
+		splitIntersection = option && option.splitIntersection || false,
 
 		// mimic the behaviour of d3.scale.category10 from the previous
 		// version of d3
