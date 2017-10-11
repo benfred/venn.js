@@ -1338,33 +1338,35 @@
 					keys = Object.keys(circles),
 					curves = {},
 					max = 0;
-				for (var each of selection.datum()) {
+				for (var datum = 0; datum < selection.datum().length; ++datum) {
+					var each = selection.datum()[datum];
 					if (each.sets.length > max) {
 						max = each.sets.length;
 					}
 				}
 				for (var lines = 2; lines <= max; lines++) {
 					var tempLines = [];
-					for (var dat of selection.datum()) {
-						if (dat.sets.length === lines) {
-							tempLines.push(dat);
+					for (var dat = 0; dat < selection.datum().length; ++dat) {
+						if (selection.datum()[dat].sets.length === lines) {
+							tempLines.push(selection.datum()[dat]);
 						}
 					}
 					curves[lines] = [];
-					for (var line of tempLines) {
+					for (var tempIndex = 0; tempIndex < tempLines.length; ++tempIndex) {
+						var line = tempLines[tempIndex];
 						var needCircles = new Array(line.sets.length);
 						for (var i = 0; i < line.sets.length; i++) {
 							needCircles[i] = circles[line.sets[i]];
 						}
 						intersectionArea(needCircles, arcs);
-						for (var arc of arcs.arcs) {
+						for (var arc = 0; arc < arcs.arcs.length; ++arc) {
 							var temp = {};
-							temp.width = arc.width;
-							temp.radius = arc.circle.radius;
-							temp.center = { x: arc.circle.x, y: arc.circle.y };
-							temp.p1 = { x: arc.p1.x, y: arc.p1.y };
-							temp.p2 = { x: arc.p2.x, y: arc.p2.y };
-							temp.parentIndex = line.sets.length == 2 ? line.sets : arc.p1.parentIndex;
+							temp.width = arcs.arcs[arc].width;
+							temp.radius = arcs.arcs[arc].circle.radius;
+							temp.center = { x: arcs.arcs[arc].circle.x, y: arcs.arcs[arc].circle.y };
+							temp.p1 = { x: arcs.arcs[arc].p1.x, y: arcs.arcs[arc].p1.y };
+							temp.p2 = { x: arcs.arcs[arc].p2.x, y: arcs.arcs[arc].p2.y };
+							temp.parentIndex = line.sets.length == 2 ? line.sets : arcs.arcs[arc].p1.parentIndex;
 							curves[lines].push(temp);
 						}
 					}
@@ -1408,7 +1410,8 @@
 								oppoCurves = [],
 								circle = circles[d.sets],
 								lines = d.sets.length === 1 ? 2 : d.sets.length;
-							for (var each of curves[lines]) {
+							for (var cur = 0; cur < curves[lines].length; ++cur) {
+								var each = curves[lines][cur];
 								if (d.sets.length === 1) {
 									if (each.parentIndex.indexOf(d.sets[0]) !== -1) {
 										if (each.radius !== circle.radius) {
@@ -1430,12 +1433,12 @@
 							if (needCurves.length !== 0) {
 								var order = rearrange(needCurves, circle, d.sets);
 								var ret = ['\nM', needCurves[0].p1.x, needCurves[0].p1.y];
-								for (var point of order) {
+								for (var point = 0; point < order.length; ++point) {
 									if (circle) {
-										var r = point[3] === 0 ? point[0] : circle.radius;
-										ret.push('\nA', r, r, 0, point[1], point[3], point[2].x, point[2].y);
+										var r = order[point][3] === 0 ? order[point][0] : circle.radius;
+										ret.push('\nA', r, r, 0, order[point][1], order[point][3], order[point][2].x, order[point][2].y);
 									} else {
-										ret.push('\nA', point[0], point[0], 0, point[1], point[3], point[2].x, point[2].y);
+										ret.push('\nA', order[point][0], order[point][0], 0, order[point][1], order[point][3], order[point][2].x, order[point][2].y);
 									}
 								}
 								return ret.join(" ");
@@ -1880,8 +1883,9 @@
 
 	// check if a point is on intersection arc(s)
 	function containedInArcs(point, arcs) {
-		for (var each of arcs) {
-			var a = each.p2.x - each.p1.x,
+		for (var arc = 0; arc < arcs.length; ++arc) {
+			var each = arcs[arc],
+				a = each.p2.x - each.p1.x,
 				b = each.p2.y - each.p1.y;
 			var pointToLine = b * (point.x - each.p1.x) - a * (point.y - each.p1.y),
 				centerToLine = b * (each.center.x - each.p1.x) - a * (each.center.y - each.p1.y);
@@ -1900,8 +1904,9 @@
 
 	// check whether a point contain in arc(s) of the circle with center given
 	function containedInArc(point, arcs, center) {
-		for (var each of arcs) {
-			var a = each.p2.x - each.p1.x,
+		for (var arc = 0; arc < arcs.length; ++arc) {
+			var each = arcs[arc],
+				a = each.p2.x - each.p1.x,
 				b = each.p2.y - each.p1.y;
 			var pointToLine = b * (point.x - each.p1.x) - a * (point.y - each.p1.y),
 				centerToLine = b * (center.x - each.p1.x) - a * (center.y - each.p1.y);
@@ -2056,9 +2061,9 @@
 					continue;
 				}
 				var needPoint = [];
-				for (var point of intersectionPoints) {
-					if (containedInArcs(point, [a, b])) {
-						needPoint.push(point);
+				for (var point = 0; point < intersectionPoints.length; ++point) {
+					if (containedInArcs(intersectionPoints[point], [a, b])) {
+						needPoint.push(intersectionPoints[point]);
 					}
 				}
 				if (needPoint.length === 0) {
@@ -2266,9 +2271,10 @@
 
 		// search for the missing arc(s) of the intersection if the intersection has not compvare
 		if (!isSamePoint(needCurves[0].p1, needCurves[1].p2) || !isSamePoint(needCurves[0].p2, needCurves[1].p1)) {
-			var each;
+			var each, curv;
 			if (start.constructor !== Array) {
-				for (each of curves) {
+				for (curv = 0; curv < curves.length; ++curv) {
+					each = curves[curv];
 					if (isSamePoint(each.p1, start)) {
 						if (isSamePoint(each.p2, end)) {
 							each.sweep = true;
@@ -2285,7 +2291,8 @@
 					}
 				}
 			} else {
-				for (each of curves) {
+				for (curv = 0; curv < curves.length; ++curv) {
+					each = curves[curv];
 					if (isSamePoint(each.p1, start[0])) {
 						if (isSamePoint(each.p2, end[1])) {
 							each.sweep = true;
