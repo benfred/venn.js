@@ -55,7 +55,11 @@ export function VennDiagram() {
         // Figure out the current label for each set. These can change
         // and D3 won't necessarily update (fixes https://github.com/benfred/venn.js/issues/103)
         var labels = {};
-        data.forEach(function(datum) { labels[datum.sets] = datum.label; });
+        data.forEach(function(datum) {
+            if (datum.label) {
+                labels[datum.sets] = datum.label;
+            }
+        });
 
         function label(d) {
             if (d.sets in labels) {
