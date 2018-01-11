@@ -60,6 +60,12 @@ export function intersectionArea(circles, stats) {
                             y : circle.y + circle.radius * Math.cos(a)
                         });
 
+                    // clamp the width to the largest is can actually be
+                    // (sometimes slightly overflows because of FP errors)
+                    if (width > circle.radius * 2) {
+                        width = circle.radius * 2;
+                    }
+
                     // pick the circle whose arc has the smallest width
                     if ((arc === null) || (arc.width > width)) {
                         arc = { circle : circle,

@@ -39,11 +39,13 @@ export function VennDiagram() {
             }
             return ret;
         },
-        layoutFunction = venn;
+        layoutFunction = venn,
+        lossFunction = loss;
+
 
     function chart(selection) {
         var data = selection.datum();
-        var solution = layoutFunction(data);
+        var solution = layoutFunction(data, {lossFuncton: lossFunction});
         if (normalize) {
             solution = normalizeSolution(solution,
                                          orientation,
@@ -273,6 +275,12 @@ export function VennDiagram() {
         if (!arguments.length) return orientationOrder;
         orientationOrder = _;
         return chart;
+    };
+
+    chart.lossFunction = function(_) {
+      if (!arguments.length) return lossFunction;
+      lossFunction = _;
+      return chart;
     };
 
     return chart;
