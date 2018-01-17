@@ -200,6 +200,12 @@ tape("randomFailures", function(test) {
 
     area = venn.intersectionArea(circles);
     nearlyEqual(test, area, 10.963620);
+    circles = [{"x":-0.0014183481763938425,"y":0.0006071174738860746,"radius":510.3115834996166},
+               {"x":875.0163281608848,"y":0.0007003612396158774,"radius":465.1793581792228},
+               {"x":462.7394999567192,"y":387.9359963330729,"radius":172.62633992134658}];
+    area = venn.intersectionArea(circles);
+    test.ok(!Number.isNaN(area), "intersectionArea does not return NaN for valid intersections");
+
     test.end();
 });
 
