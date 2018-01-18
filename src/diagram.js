@@ -1,7 +1,7 @@
 import {select, selectAll} from "d3-selection";
 import {transition} from "d3-transition";
 
-import {venn, normalizeSolution, scaleSolution} from "./layout";
+import {venn, lossFunction, normalizeSolution, scaleSolution} from "./layout";
 import {intersectionArea, distance, getCenter} from "./circleintersection";
 import {nelderMead} from "../node_modules/fmin/index.js";
 

@@ -66,6 +66,12 @@ function intersectionArea(circles, stats) {
                             y : circle.y + circle.radius * Math.cos(a)
                         });
 
+                    // clamp the width to the largest is can actually be
+                    // (sometimes slightly overflows because of FP errors)
+                    if (width > circle.radius * 2) {
+                        width = circle.radius * 2;
+                    }
+
                     // pick the circle whose arc has the smallest width
                     if ((arc === null) || (arc.width > width)) {
                         arc = { circle : circle,
@@ -566,12 +572,13 @@ function venn(areas, parameters) {
     parameters = parameters || {};
     parameters.maxIterations = parameters.maxIterations || 500;
     var initialLayout = parameters.initialLayout || bestInitialLayout;
+    var loss = parameters.lossFunction || lossFunction;
 
     // add in missing pairwise areas as having 0 size
     areas = addMissingAreas(areas);
 
     // initial layout is done greedily
-    var circles = initialLayout(areas);
+    var circles = initialLayout(areas, parameters);
 
     // transform x/y coordinates to a vector to optimize
     var initial = [], setids = [], setid;
@@ -595,7 +602,7 @@ function venn(areas, parameters) {
                                  // size : circles[setid].size
                                  };
             }
-            return lossFunction(current, areas);
+            return loss(current, areas);
         },
         initial,
         parameters);
@@ -733,6 +740,7 @@ function constrainedMDSGradient(x, fxprime, distances, constraints) {
 /// takes the best working variant of either constrained MDS or greedy
 function bestInitialLayout(areas, params) {
     var initial = greedyLayout(areas, params);
+    var loss = params.lossFunction || lossFunction;
 
     // greedylayout is sufficient for all 2/3 circle cases. try out
     // constrained MDS for higher order problems, take its output
@@ -740,8 +748,8 @@ function bestInitialLayout(areas, params) {
     // since it axis aligns)
     if (areas.length >= 8) {
         var constrained  = constrainedMDSLayout(areas, params),
-            constrainedLoss = lossFunction(constrained, areas),
-            greedyLoss = lossFunction(initial, areas);
+            constrainedLoss = loss(constrained, areas),
+            greedyLoss = loss(initial, areas);
 
         if (constrainedLoss + 1e-8 < greedyLoss) {
             initial = constrained;
@@ -812,7 +820,8 @@ function constrainedMDSLayout(areas, params) {
 /** Lays out a Venn diagram greedily, going from most overlapped sets to
 least overlapped, attempting to position each new set such that the
 overlapping areas to already positioned sets are basically right */
-function greedyLayout(areas) {
+function greedyLayout(areas, params) {
+    var loss = params && params.lossFunction ? params.lossFunction : lossFunction;
     // define a circle for each set
     var circles = {}, setOverlaps = {}, set;
     for (var i = 0; i < areas.length; ++i) {
@@ -929,9 +938,9 @@ function greedyLayout(areas) {
         for (j = 0; j < points.length; ++j) {
             circles[setIndex].x = points[j].x;
             circles[setIndex].y = points[j].y;
-            var loss = lossFunction(circles, areas);
-            if (loss < bestLoss) {
-                bestLoss = loss;
+            var localLoss = loss(circles, areas);
+            if (localLoss < bestLoss) {
+                bestLoss = localLoss;
                 bestPoint = points[j];
             }
         }
@@ -1252,11 +1261,13 @@ function VennDiagram() {
             }
             return ret;
         },
-        layoutFunction = venn;
+        layoutFunction = venn,
+        loss = lossFunction;
+
 
     function chart(selection) {
         var data = selection.datum();
-        var solution = layoutFunction(data);
+        var solution = layoutFunction(data, {lossFuncton: loss});
         if (normalize) {
             solution = normalizeSolution(solution,
                                          orientation,
@@ -1486,6 +1497,12 @@ function VennDiagram() {
         if (!arguments.length) return orientationOrder;
         orientationOrder = _;
         return chart;
+    };
+
+    chart.lossFunction = function(_) {
+      if (!arguments.length) return loss;
+      loss = _;
+      return chart;
     };
 
     return chart;
