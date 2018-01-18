@@ -45,7 +45,7 @@ export function VennDiagram() {
 
     function chart(selection) {
         var data = selection.datum();
-        var solution = layoutFunction(data, {lossFuncton: loss});
+        var solution = layoutFunction(data, {lossFunction: loss});
         if (normalize) {
             solution = normalizeSolution(solution,
                                          orientation,
