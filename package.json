@@ -1,12 +1,12 @@
 {
   "name": "venn.js",
-  "version": "0.2.14",
+  "version": "0.2.19",
   "author": "Ben Frederickson <ben@benfrederickson.com> (http:/www.benfrederickson.com)",
   "url": "https://github.com/benfred/venn.js/issues",
   "devDependencies": {
-    "rollup": "0.27",
+    "rollup": "0.52",
     "tape": "4",
-    "uglify-js": "2",
+    "uglify-js": "3",
     "jshint": "^2.8.0"
   },
   "description": "Area Proportional Venn and Euler Diagrams",

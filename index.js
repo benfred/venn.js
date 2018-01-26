@@ -1,5 +1,5 @@
 export {intersectionArea, circleCircleIntersection, circleOverlap, circleArea,
-        distance, circleIntegral} from "./src/circleintersection";
+        distance} from "./src/circleintersection";
 export {venn, greedyLayout, scaleSolution, normalizeSolution, bestInitialLayout,
         lossFunction, disjointCluster, distanceFromIntersectArea} from "./src/layout";
 export {VennDiagram, wrapText, computeTextCentres, computeTextCentre, sortAreas,

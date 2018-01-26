@@ -1,7 +1,7 @@
 import {select, selectAll} from "d3-selection";
 import {transition} from "d3-transition";
 
-import {venn, normalizeSolution, scaleSolution} from "./layout";
+import {venn, lossFunction, normalizeSolution, scaleSolution} from "./layout";
 import {intersectionArea, distance, getCenter} from "./circleintersection";
 import {nelderMead} from "../node_modules/fmin/index.js";
 
@@ -39,11 +39,13 @@ export function VennDiagram() {
             }
             return ret;
         },
-        layoutFunction = venn;
+        layoutFunction = venn,
+        loss = lossFunction;
+
 
     function chart(selection) {
         var data = selection.datum();
-        var solution = layoutFunction(data);
+        var solution = layoutFunction(data, {lossFunction: loss});
         if (normalize) {
             solution = normalizeSolution(solution,
                                          orientation,
@@ -51,6 +53,24 @@ export function VennDiagram() {
         }
         var circles = scaleSolution(solution, width, height, padding);
         var textCentres = computeTextCentres(circles, data);
+
+        // Figure out the current label for each set. These can change
+        // and D3 won't necessarily update (fixes https://github.com/benfred/venn.js/issues/103)
+        var labels = {};
+        data.forEach(function(datum) {
+            if (datum.label) {
+                labels[datum.sets] = datum.label;
+            }
+        });
+
+        function label(d) {
+            if (d.sets in labels) {
+                return labels[d.sets];
+            }
+            if (d.sets.length == 1) {
+                return '' + d.sets[0];
+            }
+        }
 
         // create svg if not already existing
         selection.selectAll("svg").data([circles]).enter().append("svg");
@@ -119,11 +139,11 @@ export function VennDiagram() {
         if (styled) {
             enterPath.style("fill-opacity", "0")
                 .filter(function (d) { return d.sets.length == 1; } )
-                .style("fill", function(d) { return colours(label(d)); })
+                .style("fill", function(d) { return colours(d.sets); })
                 .style("fill-opacity", ".25");
 
             enterText
-                .style("fill", function(d) { return d.sets.length == 1 ? colours(label(d)) : "#444"; });
+                .style("fill", function(d) { return d.sets.length == 1 ? colours(d.sets) : "#444"; });
         }
 
         // update existing, using pathTween if necessary
@@ -183,15 +203,6 @@ export function VennDiagram() {
                 'enter': enter,
                 'update': update,
                 'exit': exit};
-    }
-
-    function label(d) {
-        if (d.label) {
-            return d.label;
-        }
-        if (d.sets.length == 1) {
-            return '' + d.sets[0];
-        }
     }
 
     chart.wrap = function(_) {
@@ -264,6 +275,12 @@ export function VennDiagram() {
         if (!arguments.length) return orientationOrder;
         orientationOrder = _;
         return chart;
+    };
+
+    chart.lossFunction = function(_) {
+      if (!arguments.length) return loss;
+      loss = _;
+      return chart;
     };
 
     return chart;
