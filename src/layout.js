@@ -440,6 +440,16 @@ function orientateCircles(circles, orientation, orientationOrder) {
         }
     }
 
+    if (circles.length == 2) {
+        // if the second circle is a subset of the first, arrange so that
+        // it is off to one side. hack for https://github.com/benfred/venn.js/issues/120
+        var dist = distance(circles[0], circles[1]);
+        if (dist < Math.abs(circles[1].radius - circles[0].radius)) {
+            circles[1].x = circles[0].x + circles[0].radius - circles[1].radius - 1e-10;
+            circles[1].y = circles[0].y;
+        }
+    }
+
     // rotate circles so that second largest is at an angle of 'orientation'
     // from largest
     if (circles.length > 1) {

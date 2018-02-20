@@ -1001,6 +1001,16 @@ function orientateCircles(circles, orientation, orientationOrder) {
         }
     }
 
+    if (circles.length == 2) {
+        // if the second circle is a subset of the first, arrange so that
+        // it is off to one side. hack for https://github.com/benfred/venn.js/issues/120
+        var dist = distance(circles[0], circles[1]);
+        if (dist < Math.abs(circles[1].radius - circles[0].radius)) {
+            circles[1].x = circles[0].x + circles[0].radius - circles[1].radius - 1e-10;
+            circles[1].y = circles[0].y;
+        }
+    }
+
     // rotate circles so that second largest is at an angle of 'orientation'
     // from largest
     if (circles.length > 1) {
@@ -1267,14 +1277,33 @@ function VennDiagram() {
 
     function chart(selection) {
         var data = selection.datum();
-        var solution = layoutFunction(data, {lossFunction: loss});
-        if (normalize) {
-            solution = normalizeSolution(solution,
-                                         orientation,
-                                         orientationOrder);
+
+        // handle 0-sized sets by removing from input
+        var toremove = {};
+        data.forEach(function(datum) {
+            if ((datum.size == 0) && datum.sets.length == 1) {
+                toremove[datum.sets[0]] = 1;
+            }
+        });
+        data = data.filter(function(datum) {
+            return !datum.sets.some(function(set) { return set in toremove; });
+        });
+
+        var circles = {};
+        var textCentres = {};
+
+        if (data.length > 0) {
+            var solution = layoutFunction(data, {lossFunction: loss});
+
+            if (normalize) {
+                solution = normalizeSolution(solution,
+                                            orientation,
+                                            orientationOrder);
+            }
+
+            circles = scaleSolution(solution, width, height, padding);
+            textCentres = computeTextCentres(circles, data);
         }
-        var circles = scaleSolution(solution, width, height, padding);
-        var textCentres = computeTextCentres(circles, data);
 
         // Figure out the current label for each set. These can change
         // and D3 won't necessarily update (fixes https://github.com/benfred/venn.js/issues/103)
