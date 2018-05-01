@@ -361,7 +361,7 @@ function createPerformanceChart(selector,
             for (var i = MIN_CIRCLES; i < MAX_CIRCLES; ++i) {
                 count += algorithms[0].counts[i];
             }
-            element.select("#iterations").text("Total trails: " + count);
+            element.select("#iterations").text("Total trials: " + count);
 
             // constantly reloading the charts causes issues with hover
             // slow it down to every 10 seconds, with faster reloads at beginning
