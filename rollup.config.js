@@ -15,6 +15,7 @@ export default {
     plugins: [
         resolve({
             jsnext: true,
+            only: ['fmin'],
             main: true
         }),
         commonjs()
