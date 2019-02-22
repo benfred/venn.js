@@ -24,12 +24,7 @@ var sets = [ {sets: ['A'], size: 12},
              {sets: ['B'], size: 12},
              {sets: ['A','B'], size: 2}];
 
-var chart = venn.VennDiagram();
+var chart = venn.VennDiagram().useViewBox();
 d3.select("#venn").datum(sets).call(chart);
-var width = chart.width(), height = chart.height();
-d3.select("#venn svg")
-    .attr("viewBox", `0 0 ${width} ${height}`)
-    .attr("width", null)
-    .attr("height", null);
 </script>
 </html>
