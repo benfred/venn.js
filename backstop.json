@@ -27,6 +27,14 @@
       "selectors": ["viewport"],
       "misMatchThreshold" : 0.1,
       "requireSameDimensions": true
+    },
+    {
+      "label": "simple_viewbox",
+      "url": "./examples/simple_viewbox.html",
+      "delay": 500,
+      "selectors": ["viewport"],
+      "misMatchThreshold" : 0.1,
+      "requireSameDimensions": true
     }
   ],
   "paths": {

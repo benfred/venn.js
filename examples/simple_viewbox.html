@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Simple venn.js example using viewBox for adaptive layout</title>
+<style>
+body {
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+    <div id="venn"></div>
+</body>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="../venn.js"></script>
+<script>
+// define sets and set set intersections
+var sets = [ {sets: ['A'], size: 12},
+             {sets: ['B'], size: 12},
+             {sets: ['A','B'], size: 2}];
+
+var chart = venn.VennDiagram();
+d3.select("#venn").datum(sets).call(chart);
+var width = chart.width(), height = chart.height();
+d3.select("#venn svg")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .attr("width", null)
+    .attr("height", null);
+</script>
+</html>
