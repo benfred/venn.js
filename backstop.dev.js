@@ -1,4 +1,4 @@
-{
+module.exports = {
   "id": "venn.js",
   "viewports": [
     {
@@ -53,4 +53,4 @@
   "asyncCompareLimit": 50,
   "debug": false,
   "debugWindow": false
-}
+};

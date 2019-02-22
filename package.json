@@ -42,7 +42,9 @@
   },
   "scripts": {
     "pretest": "rm -rf build && rollup -c && cp build/venn.js .",
-    "test": "jshint src/*.js && tape 'tests/**/*test.js'",
+    "test": "jshint src/*.js && tape 'tests/**/*test.js' && backstop test --config=./backstop.ci.js",
+    "backstop-check": "backstop test --config=./backstop.dev.js",
+    "backstop-approve": "backstop approve",
     "prepublish": "npm run test && uglifyjs build/venn.js -c -m -o build/venn.min.js",
     "postpublish": "zip -j build/venn.zip -- LICENSE README.md build/venn.js build/venn.min.js"
   },
