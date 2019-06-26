@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Scaled venn.js example</title>
+<style>
+body {
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+    <div id="venn"></div>
+    <p>Adjust scale:</p>
+    <input id="scale_input" type="number" value="50">
+</body>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="../venn.js"></script>
+<script>
+// define sets and set set intersections
+var sets = [ {sets: ['A'], size: 20}, {sets: ['B'], size: 20}, {sets: ['A', 'B'], size: 10}] 
+
+var scale = 50;
+var chart = venn.VennDiagram();
+chart.height(200).width(200);
+
+function draw() {
+    scale = d3.selectAll("#scale_input").nodes()[0].value
+    chart.scaleToFit(scale);
+    d3.select("#venn").datum(sets).call(chart);
+}
+draw();
+
+d3.selectAll("input").on("change", draw);
+
+</script>
+</html>

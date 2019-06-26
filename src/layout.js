@@ -631,8 +631,9 @@ export function normalizeSolution(solution, orientation, orientationOrder) {
 
 /** Scales a solution from venn.venn or venn.greedyLayout such that it fits in
 a rectangle of width/height - with padding around the borders. also
-centers the diagram in the available space at the same time */
-export function scaleSolution(solution, width, height, padding) {
+centers the diagram in the available space at the same time.
+If the scale parameter is not null, this automatic scaling is ignored in favor of this custom one */
+export function scaleSolution(solution, width, height, padding, scaleToFit) {
     var circles = [], setids = [];
     for (var setid in solution) {
         if (solution.hasOwnProperty(setid)) {
@@ -653,11 +654,17 @@ export function scaleSolution(solution, width, height, padding) {
         console.log("not scaling solution: zero size detected");
         return solution;
     }
+    var xScaling, yScaling;
+    if(scaleToFit) {
+        var toScaleDiameter = Math.sqrt(scaleToFit / Math.PI)*2;
+        xScaling = width  / toScaleDiameter;
+        yScaling = height  / toScaleDiameter;
+    } else {
+        xScaling = width  / (xRange.max - xRange.min);
+        yScaling = height / (yRange.max - yRange.min);
+    }
 
-    var xScaling = width  / (xRange.max - xRange.min),
-        yScaling = height / (yRange.max - yRange.min),
-        scaling = Math.min(yScaling, xScaling),
-
+    var scaling = Math.min(yScaling, xScaling),
         // while we're at it, center the diagram too
         xOffset = (width -  (xRange.max - xRange.min) * scaling) / 2,
         yOffset = (height - (yRange.max - yRange.min) * scaling) / 2;

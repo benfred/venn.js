@@ -14,6 +14,7 @@ export function VennDiagram() {
         duration = 1000,
         orientation = Math.PI / 2,
         normalize = true,
+        scaleToFit = null,
         wrap = true,
         styled = true,
         fontSize = null,
@@ -69,7 +70,7 @@ export function VennDiagram() {
                                             orientationOrder);
             }
 
-            circles = scaleSolution(solution, width, height, padding);
+            circles = scaleSolution(solution, width, height, padding, scaleToFit);
             textCentres = computeTextCentres(circles, data);
         }
 
@@ -275,6 +276,12 @@ export function VennDiagram() {
     chart.normalize = function(_) {
         if (!arguments.length) return normalize;
         normalize = _;
+        return chart;
+    };
+
+    chart.scaleToFit = function(_) {
+        if (!arguments.length) return scaleToFit;
+        scaleToFit = _;
         return chart;
     };
 
