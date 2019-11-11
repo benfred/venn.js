@@ -3,7 +3,7 @@ venn.js [![Build Status](https://travis-ci.org/benfred/venn.js.svg?branch=master
 
 A javascript library for laying out area proportional venn and euler diagrams.
 
-Details of how this library works can be found on the [blog 
+Details of how this library works can be found on the [blog
 post](http://www.benfrederickson.com/venn-diagrams-with-d3.js/)
 I wrote about this. A follow up post [discusses testing strategy and
 algorithmic improvements](http://www.benfrederickson.com/better-venn-diagrams/).
@@ -22,14 +22,14 @@ diagrams.
 
 ##### Simple layout
 
-To lay out a simple diagram, just define the sets and their sizes along with the sizes 
+To lay out a simple diagram, just define the sets and their sizes along with the sizes
 of all the set intersections.
 
 The VennDiagram object will calculate a layout that is proportional to the
 input sizes, and display it in the appropriate selection when called:
 
 ```javascript
-var sets = [ {sets: ['A'], size: 12}, 
+var sets = [ {sets: ['A'], size: 12},
              {sets: ['B'], size: 12},
              {sets: ['A','B'], size: 2}];
 
@@ -47,7 +47,7 @@ has been drawn. For instance to draw a Venn Diagram with white text and a darker
 ```javascript
 var chart = venn.VennDiagram()
 d3.select("#inverted").datum(sets).call(chart)
-            
+
 d3.selectAll("#inverted .venn-circle path")
     .style("fill-opacity", .8);
 
@@ -56,6 +56,12 @@ d3.selectAll("#inverted text").style("fill", "white");
 
 [View this example, along with other possible styles](http://benfred.github.io/venn.js/examples/styled.html)
 
+The position of text within each circle of the diagram may also be modified via the `symmeticalTextCentre` property (defaults to `false`):
+
+```javascript
+// draw a diagram with text symmetrically positioned in each circle's centre
+var chart = venn.VennDiagram({symmetricalTextCentre: true});
+```
 
 ##### Dynamic layout
 
@@ -120,7 +126,7 @@ div.selectAll("g")
         // Display a tooltip with the current size
         tooltip.transition().duration(400).style("opacity", .9);
         tooltip.text(d.size + " users");
-        
+
         // highlight the current path
         var selection = d3.select(this).transition("tooltip").duration(400);
         selection.select("path")
@@ -133,7 +139,7 @@ div.selectAll("g")
         tooltip.style("left", (d3.event.pageX) + "px")
                .style("top", (d3.event.pageY - 28) + "px");
     })
-    
+
     .on("mouseout", function(d, i) {
         tooltip.transition().duration(400).style("opacity", 0);
         var selection = d3.select(this).transition("tooltip").duration(400);
