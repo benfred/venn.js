@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Venn.js Styling examples</title>
+<style>
+body {
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="../venn.js"></script>
+    <script src="./medical.jsonp"></script>
+
+    <h2>Applying styles to venn diagrams</h2>
+
+    Here are some examples of applying different styles to the same venn diagram,
+    using a dataset from <a
+    href="http://www.cs.uic.edu/~wilkinson/Publications/venneuler.pdf"> this
+    paper</a> . View the source to see the code to generate. </a>
+
+
+    <div id="rings">
+        <script>
+            var chart = venn.VennDiagram({symmetricalTextCentre: true})
+                             .width(500)
+                             .height(500);
+
+            d3.select("#rings").datum(sets).call(chart);
+
+            var colours = ['black', 'red', 'blue', 'green'];
+
+            d3.selectAll("#rings .venn-circle path")
+                .style("fill-opacity", 0)
+                .style("stroke-width", 10)
+                .style("stroke-opacity", .5)
+                .style("stroke", function(d,i) { return colours[i]; });
+
+            d3.selectAll("#rings .venn-circle text")
+                .style("fill", function(d,i) { return colours[i]})
+                .style("font-size", "24px")
+                .style("font-weight", "100");
+
+        </script>
+    </div>
+    <div id="inverted">
+        <script>
+            var chart = venn.VennDiagram({symmetricalTextCentre: true})
+                             .width(500)
+                             .height(500);
+
+            d3.select("#inverted").datum(sets).call(chart)
+
+            d3.selectAll("#inverted .venn-circle path")
+                .style("fill-opacity", .8);
+
+            d3.selectAll("#inverted text").style("fill", "white");
+        </script>
+    </div>
+    <div id="mono">
+        <script>
+            var chart = venn.VennDiagram({symmetricalTextCentre: true})
+                             .width(500)
+                             .height(500);
+
+            d3.select("#mono").datum(sets).call(chart)
+
+            d3.selectAll("#mono .venn-circle path")
+                .style("fill-opacity", 0)
+                .style("stroke-width", 2)
+                .style("stroke", "#444");
+
+            d3.selectAll("#mono text").style("fill", "#444");
+        </script>
+    </div>
+    <div id="dropshadow">
+        <link href='http://fonts.googleapis.com/css?family=Shadows+Into+Light' rel='stylesheet' type='text/css'>
+        <script>
+            var chart = venn.VennDiagram({symmetricalTextCentre: true})
+                             .width(500)
+                             .height(500);
+
+            d3.select("#dropshadow").datum(sets).call(chart);
+
+            var colours = d3.schemeCategory10;
+            var areas = d3.selectAll("#dropshadow g")
+            areas.select("path")
+                .filter(function(d) { return d.sets.length == 1; })
+                .style("fill-opacity", .1)
+                .style("stroke-width", 5)
+                .style("stroke-opacity", .8)
+                .style("fill", function(d,i) { return colours[i]; })
+                .style("stroke", function(d,i) { return colours[i]; });
+
+            areas.select("text").style("fill", "#444")
+                .style("font-family", "Shadows Into Light")
+                .style("font-size", "22px");
+
+          var defs = d3.select("#dropshadow svg").append("defs");
+
+          // from http://stackoverflow.com/questions/12277776/how-to-add-drop-shadow-to-d3-js-pie-or-donut-chart
+          var filter = defs.append("filter")
+              .attr("id", "dropshadowfilter")
+
+          filter.append("feGaussianBlur")
+              .attr("in", "SourceAlpha")
+              .attr("stdDeviation", 4)
+              .attr("result", "blur");
+          filter.append("feOffset")
+              .attr("in", "blur")
+              .attr("dx", 5)
+              .attr("dy", 5)
+              .attr("result", "offsetBlur");
+
+          var feMerge = filter.append("feMerge");
+
+          feMerge.append("feMergeNode")
+              .attr("in", "offsetBlur")
+          feMerge.append("feMergeNode")
+              .attr("in", "SourceGraphic");
+
+          areas.attr("filter", "url(#dropshadowfilter)");
+        </script>
+    </div>
+    <div id="original">
+        <script>
+            var chart = venn.VennDiagram({symmetricalTextCentre: true})
+                             .width(500)
+                             .height(500);
+
+            d3.select("#original").datum(sets).call(chart);
+        </script>
+    </div>
+</body>
+</html>
