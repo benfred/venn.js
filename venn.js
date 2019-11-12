@@ -1237,7 +1237,16 @@
 
     /*global console:true*/
 
-    function VennDiagram() {
+    /**
+     * VennDiagram includes an optional `options` parameter containing the following option(s):
+     *
+     * `symmetricalTextCentre: boolean`
+     * Whether to symmetrically center each circle's text horizontally and vertically.
+     * Defaults to `false`.
+     *
+     * @param {object} options
+     */
+    function VennDiagram(options) {
         var width = 600,
             height = 350,
             padding = 15,
@@ -1272,6 +1281,7 @@
             layoutFunction = venn,
             loss = lossFunction;
 
+        options = options || {symmetricalTextCentre: false};
 
         function chart(selection) {
             var data = selection.datum();
@@ -1300,7 +1310,7 @@
                 }
 
                 circles = scaleSolution(solution, width, height, padding);
-                textCentres = computeTextCentres(circles, data);
+                textCentres = computeTextCentres(circles, data, options);
             }
 
             // Figure out the current label for each set. These can change
@@ -1607,7 +1617,7 @@
     // compute the center of some circles by maximizing the margin of
     // the center point relative to the circles (interior) after subtracting
     // nearby circles (exterior)
-    function computeTextCentre(interior, exterior) {
+    function computeTextCentre(interior, exterior, options) {
         // get an initial estimate by sampling around the interior circles
         // and taking the point with the biggest margin
         var points = [], i;
@@ -1633,7 +1643,7 @@
                     function(p) { return -1 * circleMargin({x: p[0], y: p[1]}, interior, exterior); },
                     [initial.x, initial.y],
                     {maxIterations:500, minErrorDelta:1e-10}).x;
-        var ret = {x: solution[0], y: solution[1]};
+        var ret = {x: options && !options.symmetricalTextCentre ? solution[0] : 0, y: solution[1]};
 
         // check solution, fallback as needed (happens if fully overlapped
         // etc)
@@ -1708,7 +1718,7 @@
         return ret;
     }
 
-    function computeTextCentres(circles, areas) {
+    function computeTextCentres(circles, areas, options) {
         var ret = {}, overlapped = getOverlappingCircles(circles);
         for (var i = 0; i < areas.length; ++i) {
             var area = areas[i].sets, areaids = {}, exclude = {};
@@ -1731,7 +1741,7 @@
                     exterior.push(circles[setid]);
                 }
             }
-            var centre = computeTextCentre(interior, exterior);
+            var centre = computeTextCentre(interior, exterior, options);
             ret[area] = centre;
             if (centre.disjoint && (areas[i].size > 0)) {
                 console.log("WARNING: area " + area + " not represented on screen");
