@@ -10,9 +10,15 @@ import {nelderMead} from "fmin";
 /**
  * VennDiagram includes an optional `options` parameter containing the following option(s):
  *
- * `symmetricalTextCentre: boolean`
+ * `colourScheme: Array<String>`
+ * A list of color values to be applied when coloring diagram circles.
+ *
+ * `symmetricalTextCentre: Boolean`
  * Whether to symmetrically center each circle's text horizontally and vertically.
  * Defaults to `false`.
+ *
+ * `textFill: String`
+ * The color to be applied to the text within each circle.
  *
  * @param {object} options
  */
@@ -27,6 +33,7 @@ export function VennDiagram(options) {
         styled = true,
         fontSize = null,
         orientationOrder = null,
+        symmetricalTextCentre = options && options.symmetricalTextCentre ? options.symmetricalTextCentre : false,
 
         // mimic the behaviour of d3.scale.category10 from the previous
         // version of d3
@@ -35,7 +42,9 @@ export function VennDiagram(options) {
         // so this is the same as d3.schemeCategory10, which is only defined in d3 4.0
         // since we can support older versions of d3 as long as we don't force this,
         // I'm hackily redefining below. TODO: remove this and change to d3.schemeCategory10
-        colourScheme = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"],
+        colourScheme = options && options.colourScheme ? options.colourScheme : [
+            "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"
+        ],
         colourIndex = 0,
         colours = function(key) {
             if (key in colourMap) {
@@ -50,8 +59,6 @@ export function VennDiagram(options) {
         },
         layoutFunction = venn,
         loss = lossFunction;
-
-    options = options || {symmetricalTextCentre: false};
 
     function chart(selection) {
         var data = selection.datum();
@@ -80,7 +87,7 @@ export function VennDiagram(options) {
             }
 
             circles = scaleSolution(solution, width, height, padding);
-            textCentres = computeTextCentres(circles, data, options);
+            textCentres = computeTextCentres(circles, data, symmetricalTextCentre);
         }
 
         // Figure out the current label for each set. These can change
@@ -148,7 +155,8 @@ export function VennDiagram(options) {
             .append('g')
             .attr("class", function(d) {
                 return "venn-area venn-" +
-                    (d.sets.length == 1 ? "circle" : "intersection");
+                    (d.sets.length == 1 ? "circle" : "intersection") +
+                    (d.colour ? " venn-coloured" : "");
             })
             .attr("data-venn-sets", function(d) {
                 return d.sets.join("_");
@@ -163,16 +171,23 @@ export function VennDiagram(options) {
             .attr("x", width/2)
             .attr("y", height/2);
 
-
         // apply minimal style if wanted
         if (styled) {
             enterPath.style("fill-opacity", "0")
                 .filter(function (d) { return d.sets.length == 1; } )
-                .style("fill", function(d) { return colours(d.sets); })
+                .style("fill", function(d) {return d.colour ? d.colour : colours(d.sets); })
                 .style("fill-opacity", ".25");
 
             enterText
-                .style("fill", function(d) { return d.sets.length == 1 ? colours(d.sets) : "#444"; });
+                .style("fill", function(d) {
+                    if (d.colour) {
+                        return "#FFF";
+                    }
+                    if (options.textFill) {
+                        return options.textFill;
+                    }
+                    return d.sets.length == 1 ? colours(d.sets) : "#444";
+                });
         }
 
         // update existing, using pathTween if necessary
@@ -387,7 +402,7 @@ function circleMargin(current, interior, exterior) {
 // compute the center of some circles by maximizing the margin of
 // the center point relative to the circles (interior) after subtracting
 // nearby circles (exterior)
-export function computeTextCentre(interior, exterior, options) {
+export function computeTextCentre(interior, exterior, symmetricalTextCentre) {
     // get an initial estimate by sampling around the interior circles
     // and taking the point with the biggest margin
     var points = [], i;
@@ -413,7 +428,7 @@ export function computeTextCentre(interior, exterior, options) {
                 function(p) { return -1 * circleMargin({x: p[0], y: p[1]}, interior, exterior); },
                 [initial.x, initial.y],
                 {maxIterations:500, minErrorDelta:1e-10}).x;
-    var ret = {x: options && !options.symmetricalTextCentre ? solution[0] : 0, y: solution[1]};
+    var ret = {x: symmetricalTextCentre ? 0 : solution[0], y: solution[1]};
 
     // check solution, fallback as needed (happens if fully overlapped
     // etc)
@@ -488,7 +503,7 @@ function getOverlappingCircles(circles) {
     return ret;
 }
 
-export function computeTextCentres(circles, areas, options) {
+export function computeTextCentres(circles, areas, symmetricalTextCentre) {
     var ret = {}, overlapped = getOverlappingCircles(circles);
     for (var i = 0; i < areas.length; ++i) {
         var area = areas[i].sets, areaids = {}, exclude = {};
@@ -511,7 +526,7 @@ export function computeTextCentres(circles, areas, options) {
                 exterior.push(circles[setid]);
             }
         }
-        var centre = computeTextCentre(interior, exterior, options);
+        var centre = computeTextCentre(interior, exterior, symmetricalTextCentre);
         ret[area] = centre;
         if (centre.disjoint && (areas[i].size > 0)) {
             console.log("WARNING: area " + area + " not represented on screen");

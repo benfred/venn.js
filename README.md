@@ -102,6 +102,15 @@ d3.selectAll("#rings .venn-circle")
 ```
 [View this example](http://benfred.github.io/venn.js/examples/interactive.html)
 
+The colour scheme for the diagram's circles may also be modified via the `colourScheme` option, and the text within each circle can have its fill modified via the `textFill` option:
+
+```javascript
+var chart = venn.VennDiagram({
+    colourScheme: ["rgb(235, 237, 238)", "#F26250"],
+    textFill: "#FFF",
+});
+```
+
 ##### Adding tooltips
 
 Another common case is adding a tooltip when hovering over the elements in the diagram. The only
