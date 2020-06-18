@@ -238,12 +238,12 @@
             fB = f(b),
             delta = b - a;
 
+        if (Math.abs(fA) < tolerance) return a;
+        if (Math.abs(fB) < tolerance) return b;
+
         if (fA * fB > 0) {
             throw "Initial bisect points must have opposite signs";
         }
-
-        if (fA === 0) return a;
-        if (fB === 0) return b;
 
         for (var i = 0; i < maxIterations; ++i) {
             delta /= 2;
