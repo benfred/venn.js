@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Simple venn.js example</title>
+    <title>Simple venn.js example using viewBox for adaptive layout</title>
 <style>
 body {
     font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
@@ -24,8 +24,7 @@ var sets = [ {sets: ['A'], size: 12},
              {sets: ['B'], size: 12},
              {sets: ['A','B'], size: 2}];
 
-var chart = venn.VennDiagram();
+var chart = venn.VennDiagram().useViewBox();
 d3.select("#venn").datum(sets).call(chart);
-
 </script>
 </html>

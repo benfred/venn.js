@@ -4,12 +4,13 @@
   "author": "Ben Frederickson <ben@benfrederickson.com> (http:/www.benfrederickson.com)",
   "url": "https://github.com/benfred/venn.js/issues",
   "devDependencies": {
+    "backstopjs": "3.8.8",
+    "jshint": "^2.8.0",
     "rollup": "^0.59.4",
     "rollup-plugin-commonjs": "^9.1.3",
     "rollup-plugin-node-resolve": "^3.3.0",
     "tape": "4",
-    "uglify-js": "3",
-    "jshint": "^2.8.0"
+    "uglify-js": "3"
   },
   "description": "Area Proportional Venn and Euler Diagrams",
   "main": "build/venn.js",
@@ -41,7 +42,9 @@
   },
   "scripts": {
     "pretest": "rm -rf build && rollup -c && cp build/venn.js .",
-    "test": "jshint src/*.js && tape 'tests/**/*test.js'",
+    "test": "jshint src/*.js && tape 'tests/**/*test.js' && backstop test --config=./backstop.ci.js",
+    "backstop-check": "backstop test --config=./backstop.dev.js",
+    "backstop-approve": "backstop approve",
     "prepublish": "npm run test && uglifyjs build/venn.js -c -m -o build/venn.min.js",
     "postpublish": "zip -j build/venn.zip -- LICENSE README.md build/venn.js build/venn.min.js"
   },

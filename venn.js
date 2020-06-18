@@ -1238,7 +1238,8 @@
     /*global console:true*/
 
     function VennDiagram() {
-        var width = 600,
+        var useViewBox = false,
+            width = 600,
             height = 350,
             padding = 15,
             duration = 1000,
@@ -1324,9 +1325,13 @@
             // create svg if not already existing
             selection.selectAll("svg").data([circles]).enter().append("svg");
 
-            var svg = selection.select("svg")
-                .attr("width", width)
-                .attr("height", height);
+            var svg = selection.select("svg");
+
+            if (useViewBox) {
+                svg.attr("viewBox", "0 0 " + width + " " + height);
+            } else {
+                svg.attr("width", width).attr("height", height);
+            }
 
             // to properly transition intersection areas, we need the
             // previous circles locations. load from elements
@@ -1457,6 +1462,11 @@
         chart.wrap = function(_) {
             if (!arguments.length) return wrap;
             wrap = _;
+            return chart;
+        };
+
+        chart.useViewBox = function() {
+            useViewBox = true;
             return chart;
         };
 
