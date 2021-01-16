@@ -21,5 +21,8 @@ var sets = [
     {"sets": [2, 4], "size": 1952}, 
     {"sets": [2, 5], "size": 2337}, 
     {"sets": [2, 6], "size": 57}, 
-    {"sets": [2, 7], "size": 50} 
+    {"sets": [2, 7], "size": 50},
+    {"sets": [0, 1], "size": 384},
+    {"sets": [0, 2], "size": 851},
+    {"sets": [1, 2], "size": 847}
 ];
