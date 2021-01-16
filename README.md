@@ -143,6 +143,6 @@ div.selectAll("g")
             .style("stroke-opacity", 0);
     });
 ```
-[View this example](http://benfred.github.io/venn.js/examples/intersection_tooltip.html)
+[View this example](http://solarmist.github.io/venn.js/examples/intersection_tooltip.html)
 
 Released under the MIT License.
